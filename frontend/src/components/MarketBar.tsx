@@ -33,12 +33,16 @@ export const MarketBar = () => {
     if (indices.length === 0) return null
 
     return (
-        <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-2 px-4 bg-bg-card border-b border-surface-border">
+        <div className="flex items-center justify-between md:justify-start gap-4 md:gap-6 overflow-x-auto no-scrollbar py-2 px-4 bg-bg-card border-b border-surface-border w-full">
             {indices.map(index => {
                 const isPositive = index.variation > 0
                 const isNegative = index.variation < 0
                 return (
-                    <div key={index.ticker} className="flex items-center gap-2 whitespace-nowrap">
+                    <div
+                        key={index.ticker}
+                        className={`items-center gap-2 whitespace-nowrap ${index.ticker !== 'IBOVESPA' && index.ticker !== 'SELIC' ? 'hidden md:flex' : 'flex'
+                            }`}
+                    >
                         <span className="text-xs font-bold text-text-primary">{index.name}</span>
                         <span className="text-xs font-semibold text-text-secondary">
                             {index.ticker === 'SELIC' || index.ticker === 'IPCA'

@@ -9,7 +9,7 @@ import { useUserStore } from '@/store/user.store'
 
 const COLORS = ['#00e88f', '#00b8ff', '#f0a500', '#ff4d6d', '#a78bfa']
 
-const formatTooltip = (value: number) => [formatMoeda(value), 'Patrimônio']
+const formatTooltip = (value: any) => [formatMoeda(Number(value) || 0), 'Patrimônio']
 
 export const DashboardPage = () => {
     const { carteira } = useCarteiraStore()
@@ -40,7 +40,7 @@ export const DashboardPage = () => {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     titulo="Patrimônio Total"
                     valor={formatMoeda(carteira.totalAtual)}
@@ -72,9 +72,9 @@ export const DashboardPage = () => {
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Evolução Patrimonial */}
-                <div className="lg:col-span-2 card">
+                <div className="xl:col-span-2 card">
                     <h2 className="text-text-primary font-semibold mb-4">Evolução Patrimonial</h2>
                     <ResponsiveContainer width="100%" height={220}>
                         <AreaChart data={HISTORICO_PATRIMONIAL} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -107,7 +107,7 @@ export const DashboardPage = () => {
                             </Pie>
                             <Tooltip
                                 contentStyle={{ backgroundColor: '#0e1117', border: '1px solid #1e2535', borderRadius: '12px', color: '#e8eaf0' }}
-                                formatter={(v: number) => [formatMoeda(v), '']}
+                                formatter={(v: any) => [formatMoeda(Number(v) || 0), '']}
                             />
                         </PieChart>
                     </ResponsiveContainer>

@@ -11,9 +11,9 @@ export const Navbar = ({ onMenuToggle }: NavbarProps) => {
     const [busca, setBusca] = useState('')
 
     return (
-        <header className="h-16 bg-bg-card border-b border-surface-border flex items-center px-6 gap-4 sticky top-0 z-20">
+        <header className="h-16 bg-bg-card border-b border-surface-border flex items-center px-4 md:px-6 gap-4 sticky top-0 z-20 w-full">
             {/* Mobile menu toggle */}
-            <button onClick={onMenuToggle} className="btn-ghost p-2 lg:hidden">
+            <button onClick={onMenuToggle} className="btn-ghost p-2 md:hidden">
                 <Menu size={20} />
             </button>
 
