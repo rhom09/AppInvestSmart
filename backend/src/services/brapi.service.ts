@@ -1,5 +1,6 @@
 import axios from 'axios'
 import dotenv from 'dotenv'
+import { cacheService } from './cache.service'
 
 dotenv.config()
 
@@ -15,38 +16,44 @@ const MOCK_ATIVOS = [
 
 export const brapiService = {
     async listarAtivos() {
-        if (!TOKEN) {
-            console.warn('⚠️  BRAPI_TOKEN não configurado, usando mock')
-            return MOCK_ATIVOS
-        }
-        try {
-            const { data } = await axios.get(`${BRAPI_BASE}/available`, { params: { token: TOKEN } })
-            return data.stocks?.slice(0, 50) ?? MOCK_ATIVOS
-        } catch {
-            return MOCK_ATIVOS
-        }
+        return cacheService.getOrSet('brapi_available_stocks', async () => {
+            if (!TOKEN) {
+                console.warn('⚠️  BRAPI_TOKEN não configurado, usando mock')
+                return MOCK_ATIVOS
+            }
+            try {
+                const { data } = await axios.get(`${BRAPI_BASE}/available`, { params: { token: TOKEN } })
+                return data.stocks?.slice(0, 50) ?? MOCK_ATIVOS
+            } catch {
+                return MOCK_ATIVOS
+            }
+        })
     },
 
     async buscarAtivo(ticker: string) {
-        if (!TOKEN) return MOCK_ATIVOS.find(a => a.ticker === ticker)
-        try {
-            const { data } = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, { params: { token: TOKEN } })
-            return data.results?.[0]
-        } catch {
-            return MOCK_ATIVOS.find(a => a.ticker === ticker)
-        }
+        return cacheService.getOrSet(`brapi_quote_${ticker}`, async () => {
+            if (!TOKEN) return MOCK_ATIVOS.find(a => a.ticker === ticker)
+            try {
+                const { data } = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, { params: { token: TOKEN } })
+                return data.results?.[0]
+            } catch {
+                return MOCK_ATIVOS.find(a => a.ticker === ticker)
+            }
+        })
     },
 
     async buscarHistorico(ticker: string, periodo = '1mo') {
-        if (!TOKEN) return []
-        try {
-            const { data } = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
-                params: { token: TOKEN, range: periodo, interval: '1d', history: true }
-            })
-            return data.results?.[0]?.historicalDataPrice ?? []
-        } catch {
-            return []
-        }
+        return cacheService.getOrSet(`brapi_history_${ticker}_${periodo}`, async () => {
+            if (!TOKEN) return []
+            try {
+                const { data } = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
+                    params: { token: TOKEN, range: periodo, interval: '1d', history: true }
+                })
+                return data.results?.[0]?.historicalDataPrice ?? []
+            } catch {
+                return []
+            }
+        })
     },
 
     async buscarIndices() {

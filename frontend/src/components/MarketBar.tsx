@@ -41,7 +41,11 @@ export const MarketBar = () => {
                     <div key={index.ticker} className="flex items-center gap-2 whitespace-nowrap">
                         <span className="text-xs font-bold text-text-primary">{index.name}</span>
                         <span className="text-xs font-semibold text-text-secondary">
-                            {index.ticker === 'SELIC' ? `${index.close.toFixed(2)}%` : formatMoeda(index.close).replace('R$', '').trim()}
+                            {index.ticker === 'SELIC' || index.ticker === 'IPCA'
+                                ? `${index.close.toFixed(2)}%`
+                                : index.ticker === 'USD'
+                                    ? formatMoeda(index.close)
+                                    : formatMoeda(index.close).replace('R$', '').trim()}
                         </span>
                         <div className={`flex items-center gap-0.5 text-[10px] font-bold ${isPositive ? 'text-primary' : isNegative ? 'text-danger' : 'text-text-muted'}`}>
                             {isPositive ? <TrendingUp size={10} /> : isNegative ? <TrendingDown size={10} /> : <Minus size={10} />}

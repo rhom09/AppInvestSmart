@@ -1,11 +1,13 @@
-import { Router } from 'express'
+import { Router, Request, Response } from 'express'
 import { brapiService } from '../services/brapi.service'
 import { scoreService } from '../services/score.service'
+import { bcbService } from '../services/bcb.service'
+import { awesomeService } from '../services/awesome.service'
 
 const router = Router()
 
 // GET /api/acoes - listar todas as ações
-router.get('/', async (_req, res) => {
+router.get('/', async (_req: Request, res: Response) => {
     try {
         const acoes = await brapiService.listarAtivos()
         res.json({ success: true, data: acoes, total: acoes.length })
@@ -44,8 +46,19 @@ router.get('/:ticker/historico', async (req, res) => {
 // GET /api/acoes/market/indices - índices de mercado
 router.get('/market/indices', async (_req, res) => {
     try {
-        const indices = await brapiService.buscarIndices()
-        res.json({ success: true, data: indices })
+        const [indices, ipca, dolar] = await Promise.all([
+            brapiService.buscarIndices(),
+            bcbService.buscarIPCA12m(),
+            awesomeService.buscarDolar()
+        ])
+
+        const completeIndices = [
+            ...indices,
+            { ticker: 'IPCA', name: 'IPCA (12m)', close: ipca, variation: 0 },
+            dolar
+        ]
+
+        res.json({ success: true, data: completeIndices })
     } catch {
         res.status(500).json({ success: false, message: 'Erro ao buscar índices' })
     }
