@@ -48,4 +48,34 @@ export const brapiService = {
             return []
         }
     },
+
+    async buscarIndices() {
+        if (!TOKEN) return [
+            { ticker: 'IBOV', name: 'IBOVESPA', close: 128500, variation: 0.5 },
+            { ticker: 'SELIC', name: 'SELIC', close: 10.75, variation: 0 }
+        ]
+        try {
+            const { data } = await axios.get(`${BRAPI_BASE}/quote/^BVSP`, { params: { token: TOKEN } })
+            const ibov = data.results?.[0]
+            return [
+                {
+                    ticker: 'IBOV',
+                    name: 'IBOVESPA',
+                    close: ibov?.regularMarketPrice || 128500,
+                    variation: ibov?.regularMarketChangePercent || 0
+                },
+                {
+                    ticker: 'SELIC',
+                    name: 'SELIC',
+                    close: 10.75,
+                    variation: 0
+                }
+            ]
+        } catch {
+            return [
+                { ticker: 'IBOV', name: 'IBOVESPA', close: 128500, variation: 0.5 },
+                { ticker: 'SELIC', name: 'SELIC', close: 10.75, variation: 0 }
+            ]
+        }
+    },
 }

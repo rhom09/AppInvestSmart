@@ -41,4 +41,14 @@ router.get('/:ticker/historico', async (req, res) => {
     }
 })
 
+// GET /api/acoes/market/indices - índices de mercado
+router.get('/market/indices', async (_req, res) => {
+    try {
+        const indices = await brapiService.buscarIndices()
+        res.json({ success: true, data: indices })
+    } catch {
+        res.status(500).json({ success: false, message: 'Erro ao buscar índices' })
+    }
+})
+
 export { router as acoesRoutes }
