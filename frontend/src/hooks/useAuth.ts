@@ -19,7 +19,11 @@ export const useAuth = (): AuthState => {
         supabase.auth.getSession().then(({ data }) => {
             const sessionUser = data.session?.user ?? null
             setUser(sessionUser)
-            if (sessionUser) setFromSupabase(sessionUser)
+            if (sessionUser) {
+                setFromSupabase(sessionUser)
+            } else {
+                useUserStore.getState().logout()
+            }
             setLoading(false)
         })
 
@@ -27,7 +31,11 @@ export const useAuth = (): AuthState => {
         const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
             const sessionUser = session?.user ?? null
             setUser(sessionUser)
-            if (sessionUser) setFromSupabase(sessionUser)
+            if (sessionUser) {
+                setFromSupabase(sessionUser)
+            } else {
+                useUserStore.getState().logout()
+            }
             setLoading(false)
         })
 

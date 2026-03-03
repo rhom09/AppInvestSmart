@@ -7,8 +7,11 @@ import { ETFsPage } from './pages/ETFsPage'
 import { RendaFixaPage } from './pages/RendaFixaPage'
 import { CarteiraPage } from './pages/CarteiraPage'
 import { LoginPage } from './pages/LoginPage'
+import { useAuth } from './hooks/useAuth'
 
 function App() {
+  useAuth() // Initialize auth listener globally
+
   return (
     <BrowserRouter>
       <Routes>
