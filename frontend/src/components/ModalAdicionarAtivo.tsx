@@ -48,8 +48,12 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
         debounceRef.current = setTimeout(async () => {
             setBuscando(true)
             try {
-                const { data } = await api.get<{ data: Ativo[] }>('/acoes', { params: { search: q } })
-                setResultados(data.data?.slice(0, 6) ?? [])
+                const { data } = await api.get<{ data: Ativo; success: boolean }>(`/acoes/${q.toUpperCase()}`)
+                if (data.success && data.data && data.data.ticker) {
+                    setResultados([data.data])
+                } else {
+                    setResultados([])
+                }
             } catch {
                 setResultados([])
             } finally {
@@ -198,8 +202,8 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
                                         key={t.value}
                                         onClick={() => setTipo(t.value as CarteiraAtivo['tipo'])}
                                         className={`py-2 text-xs font-semibold rounded-lg border transition-all ${tipo === t.value
-                                                ? 'bg-primary text-bg-primary border-primary'
-                                                : 'border-surface-border text-text-muted hover:border-primary/40'
+                                            ? 'bg-primary text-bg-primary border-primary'
+                                            : 'border-surface-border text-text-muted hover:border-primary/40'
                                             }`}
                                     >
                                         {t.label}
