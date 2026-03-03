@@ -69,7 +69,7 @@ export const CarteiraPage = () => {
                             </thead>
                             <tbody>
                                 {carteira.itens.map(item => (
-                                    <tr key={item.ticker} className="border-b border-surface-border/50 hover:bg-bg-elevated transition-colors">
+                                    <tr key={item.id ?? item.ticker} className="border-b border-surface-border/50 hover:bg-bg-elevated transition-colors">
                                         <td className="px-4 py-3">
                                             <p className="text-sm font-bold text-text-primary">{item.ticker}</p>
                                             <p className="text-xs text-text-muted">{item.tipo}</p>
@@ -87,7 +87,7 @@ export const CarteiraPage = () => {
                                         </td>
                                         <td className="px-4 py-3">
                                             <button
-                                                onClick={() => removerItem(item.ticker)}
+                                                onClick={() => removerItem(item.supabaseId, item.id!)}
                                                 className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger/10 transition-all"
                                                 title="Remover ativo"
                                             >

@@ -137,18 +137,23 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
                 data_compra: dataCompra || undefined,
             }
 
-            // Save to Supabase if user is logged in; otherwise keep it local only
+            // Save to Supabase if user is logged in; capture returned row ID
+            let supabaseRowId: string | undefined
             if (user) {
-                await adicionarAtivo(ativoData)
+                const saved = await adicionarAtivo(ativoData)
+                supabaseRowId = saved?.id
             }
 
             // Always add to local zustand store (works for guests too)
+            const localId = crypto.randomUUID()
             const precoAtual = selecionado.preco
             const totalInvestido = Number(quantidade) * Number(precoMedio)
             const totalAtual = Number(quantidade) * precoAtual
             const resultado = totalAtual - totalInvestido
 
             adicionarItem({
+                id: localId,
+                supabaseId: supabaseRowId,
                 ticker: selecionado.ticker,
                 nome: selecionado.nome,
                 tipo: tipo === 'acao' ? 'ACAO' : tipo === 'fii' ? 'FII' : tipo === 'etf' ? 'ETF' : 'RENDA_FIXA',

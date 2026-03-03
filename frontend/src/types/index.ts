@@ -85,6 +85,8 @@ export interface RendaFixa {
 
 // ─── Carteira ───────────────────────────────────────────────────────
 export interface ItemCarteira {
+    id?: string          // local uuid for zustand keying
+    supabaseId?: string  // row id from carteira_ativos table
     ticker: string
     nome: string
     tipo: 'ACAO' | 'FII' | 'ETF' | 'RENDA_FIXA' | 'CRIPTO'
