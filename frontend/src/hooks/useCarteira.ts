@@ -26,8 +26,12 @@ const buildResumo = (itens: ItemCarteira[], tickerScores: Record<string, number>
     let somaPesos = 0
     let somaScoresPonderados = 0
 
+    console.log('--- DEBUG CALCULO SCORE ---')
+    console.log('Ticker Scores recebidos:', tickerScores)
+
     itens.forEach(item => {
         const score = tickerScores[item.ticker] || 0
+        console.log(`Ativo: ${item.ticker} | Score: ${score} | TotalAtual (Peso): ${item.totalAtual}`)
         if (score > 0) {
             somaScoresPonderados += score * item.totalAtual
             somaPesos += item.totalAtual
@@ -35,6 +39,8 @@ const buildResumo = (itens: ItemCarteira[], tickerScores: Record<string, number>
     })
 
     const scoreCarteira = somaPesos > 0 ? Math.round(somaScoresPonderados / somaPesos) : 0
+    console.log(`Cálculo Final -> somaPonderada: ${somaScoresPonderados} / somaPesos: ${somaPesos} = ${scoreCarteira}`)
+    console.log('---------------------------')
 
     return {
         ...EMPTY_CARTEIRA,
