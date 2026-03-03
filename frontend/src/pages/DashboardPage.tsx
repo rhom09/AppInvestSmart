@@ -3,7 +3,6 @@ import { AreaChart, Area, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, XAx
 import { StatCard } from '@/components/StatCard'
 import { SpotlightAcao } from '@/components/SpotlightAcao'
 import { TabelaIndicadas } from '@/components/TabelaIndicadas'
-import { TickerBar } from '@/components/TickerBar'
 import { Wallet, TrendingUp, Star, DollarSign, X, ExternalLink, Radio } from 'lucide-react'
 import { useCarteiraStore } from '@/store/carteira.store'
 import { useAcoes } from '@/hooks/useAcoes'
@@ -173,9 +172,6 @@ export const DashboardPage = () => {
                     <span className="text-sm font-semibold text-primary">Score: {carteira.scoreCarteira}/100</span>
                 </div>
             </div>
-
-            {/* TickerBar - market status + extra indices */}
-            <TickerBar />
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
