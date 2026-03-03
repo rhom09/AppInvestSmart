@@ -6,6 +6,7 @@ import { FIIsPage } from './pages/FIIsPage'
 import { ETFsPage } from './pages/ETFsPage'
 import { RendaFixaPage } from './pages/RendaFixaPage'
 import { CarteiraPage } from './pages/CarteiraPage'
+import { LoginPage } from './pages/LoginPage'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/planos" element={<div className="card p-8 text-center text-text-secondary">Em breve: Planos Premium 🚀</div>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
   )
