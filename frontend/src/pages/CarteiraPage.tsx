@@ -4,14 +4,17 @@ import { useCarteira } from '@/hooks/useCarteira'
 import { VariacaoBadge } from '@/components/VariacaoBadge'
 import { ScoreBar } from '@/components/ScoreBar'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { ModalAdicionarAtivo } from '@/components/ModalAdicionarAtivo'
 import { formatMoeda, formatPercent } from '@/utils/formatters'
 import { calcularJurosCompostos } from '@/utils/calculators'
+import { Plus, Trash2 } from 'lucide-react'
 
 export const CarteiraPage = () => {
-    const { carteira, loading } = useCarteira()
+    const { carteira, loading, removerItem } = useCarteira()
     const [aporte, setAporte] = useState(500)
     const [taxa, setTaxa] = useState(1.0)
     const [meses, setMeses] = useState(24)
+    const [modalAberto, setModalAberto] = useState(false)
 
     const projecao = calcularJurosCompostos({ aporteMensal: aporte, taxaMensal: taxa, meses, patrimonioInicial: carteira.totalAtual })
     const projecaoGrafico = projecao.filter((_, i) => i % 3 === 0 || i === projecao.length - 1)
@@ -20,9 +23,18 @@ export const CarteiraPage = () => {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-text-primary">Minha Carteira</h1>
-                <p className="text-text-secondary text-sm mt-1">Visão consolidada dos seus investimentos</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-text-primary">Minha Carteira</h1>
+                    <p className="text-text-secondary text-sm mt-1">Visão consolidada dos seus investimentos</p>
+                </div>
+                <button
+                    onClick={() => setModalAberto(true)}
+                    className="flex items-center gap-2 bg-primary text-bg-primary font-semibold py-2 px-4 rounded-xl hover:brightness-110 transition-all text-sm"
+                >
+                    <Plus size={16} />
+                    Adicionar Ativo
+                </button>
             </div>
 
             {/* Summary */}
@@ -50,7 +62,7 @@ export const CarteiraPage = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-surface-border">
-                                    {['Ativo', 'Qtd.', 'Preço Médio', 'Preço Atual', 'Resultado', '%'].map(h => (
+                                    {['Ativo', 'Qtd.', 'Preço Médio', 'Preço Atual', 'Resultado', '%', ''].map(h => (
                                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-text-muted">{h}</th>
                                     ))}
                                 </tr>
@@ -72,6 +84,15 @@ export const CarteiraPage = () => {
                                         </td>
                                         <td className="px-4 py-3">
                                             <VariacaoBadge variacao={item.resultadoPercent} size="sm" />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <button
+                                                onClick={() => removerItem(item.ticker)}
+                                                className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger/10 transition-all"
+                                                title="Remover ativo"
+                                            >
+                                                <Trash2 size={13} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -129,7 +150,7 @@ export const CarteiraPage = () => {
                                 <YAxis tick={{ fill: '#52607a', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#0e1117', border: '1px solid #1e2535', borderRadius: '12px', color: '#e8eaf0' }}
-                                    formatter={(v: number) => [formatMoeda(v), '']}
+                                    formatter={(v: number | undefined) => [formatMoeda(Number(v) || 0), '']}
                                 />
                                 <Bar dataKey="totalInvestido" fill="#1e2535" radius={[4, 4, 0, 0]} name="Total Investido" />
                                 <Bar dataKey="rendimento" fill="#00e88f" radius={[4, 4, 0, 0]} name="Rendimento" />
@@ -138,6 +159,9 @@ export const CarteiraPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Add Asset Modal */}
+            {modalAberto && <ModalAdicionarAtivo onClose={() => setModalAberto(false)} />}
         </div>
     )
 }
