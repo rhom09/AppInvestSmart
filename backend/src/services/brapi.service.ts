@@ -79,7 +79,8 @@ export const brapiService = {
                         roe: res.returnOnEquity != null ? res.returnOnEquity * 100 : (mockInfo?.roe || null),
                         margemLiquida: res.netMargin != null ? res.netMargin * 100 : (mockInfo?.margemLiquida || null),
                         vacancia: res.vacancy != null ? res.vacancy : (mockInfo?.vacancia || undefined),
-                        liquidez: res.regularMarketVolume || undefined
+                        liquidez: res.regularMarketVolume || undefined,
+                        score: mockInfo?.score || undefined
                     }
                 }
 

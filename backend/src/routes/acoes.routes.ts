@@ -24,7 +24,7 @@ router.get('/:ticker', async (req, res) => {
         if (!ativo) {
             return res.status(404).json({ success: false, message: 'Ativo não encontrado' })
         }
-        const score = scoreService.calcularScore(ativo)
+        const score = ativo.score ?? scoreService.calcularScore(ativo)
         return res.json({ success: true, data: { ...ativo, score } })
     } catch {
         return res.status(500).json({ success: false, message: 'Erro ao buscar ativo' })
