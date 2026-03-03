@@ -1,19 +1,146 @@
+import { useState } from 'react'
 import { AreaChart, Area, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { StatCard } from '@/components/StatCard'
-import { AtivoCard } from '@/components/AtivoCard'
-import { Wallet, TrendingUp, Star, DollarSign } from 'lucide-react'
+import { SpotlightAcao } from '@/components/SpotlightAcao'
+import { TabelaIndicadas } from '@/components/TabelaIndicadas'
+import { Wallet, TrendingUp, Star, DollarSign, X } from 'lucide-react'
 import { useCarteiraStore } from '@/store/carteira.store'
-import { ACOES_MOCK, HISTORICO_PATRIMONIAL } from '@/data/mockData'
+import { useAcoes } from '@/hooks/useAcoes'
+import { useFIIs } from '@/hooks/useFIIs'
+import { HISTORICO_PATRIMONIAL } from '@/data/mockData'
 import { formatMoeda, formatPercent } from '@/utils/formatters'
 import { useUserStore } from '@/store/user.store'
+import type { Ativo } from '@/types'
 
 const COLORS = ['#00e88f', '#00b8ff', '#f0a500', '#ff4d6d', '#a78bfa']
 
 const formatTooltip = (value: any) => [formatMoeda(Number(value) || 0), 'Patrimônio']
 
+// ─── Painel lateral de detalhes ─────────────────────────────
+const DetalhePanel = ({ ativo, onClose }: { ativo: Ativo; onClose: () => void }) => {
+    const getScoreCor = (s: number) => s >= 80 ? '#00e88f' : s >= 65 ? '#00b8ff' : s >= 50 ? '#f5c842' : '#ff4d6d'
+    const getScoreLabel = (s: number) => s >= 80 ? 'Excelente' : s >= 65 ? 'Bom' : s >= 50 ? 'Neutro' : 'Evitar'
+    const cor = getScoreCor(ativo.score)
+
+    return (
+        <div className="fixed inset-0 z-50 flex">
+            {/* Backdrop */}
+            <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+
+            {/* Panel */}
+            <div className="w-full max-w-md bg-bg-card border-l border-surface-border flex flex-col overflow-y-auto animate-in slide-in-from-right duration-300">
+                <div className="p-6 border-b border-surface-border flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-black text-text-primary">{ativo.ticker}</h2>
+                        <p className="text-sm text-text-muted">{ativo.nome}</p>
+                    </div>
+                    <button onClick={onClose} className="btn-ghost p-2 rounded-xl">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    {/* Score Badge */}
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-bg-elevated border border-surface-border">
+                        <div>
+                            <p className="text-xs text-text-muted mb-1">Score InvestSmart</p>
+                            <p className="text-3xl font-black" style={{ color: cor }}>{ativo.score}</p>
+                            <p className="text-sm font-semibold" style={{ color: cor }}>{getScoreLabel(ativo.score)}</p>
+                        </div>
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center border" style={{ borderColor: `${cor}40`, backgroundColor: `${cor}15` }}>
+                            <TrendingUp size={28} style={{ color: cor }} />
+                        </div>
+                    </div>
+
+                    {/* Price */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-xl bg-bg-elevated">
+                            <p className="text-[11px] text-text-muted mb-1">Preço Atual</p>
+                            <p className="text-lg font-bold text-text-primary">{formatMoeda(ativo.preco)}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-bg-elevated">
+                            <p className="text-[11px] text-text-muted mb-1">Variação</p>
+                            <p className={`text-lg font-bold ${ativo.variacaoPercent >= 0 ? 'text-primary' : 'text-danger'}`}>
+                                {ativo.variacaoPercent >= 0 ? '+' : ''}{ativo.variacaoPercent.toFixed(2)}%
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Fundamentals */}
+                    <div>
+                        <p className="text-xs text-text-muted uppercase tracking-wider mb-3">Indicadores</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            {[
+                                { label: 'P/L', value: ativo.pl > 0 ? ativo.pl.toFixed(1) : '—' },
+                                { label: 'P/VP', value: ativo.pvp > 0 ? ativo.pvp.toFixed(2) : '—' },
+                                { label: 'DY', value: `${ativo.dy.toFixed(1)}%` },
+                                { label: 'ROE', value: ativo.roe > 0 ? `${ativo.roe.toFixed(1)}%` : '—' },
+                                { label: 'Margem Liq.', value: ativo.margemLiquida > 0 ? `${ativo.margemLiquida.toFixed(1)}%` : '—' },
+                                { label: 'Setor', value: ativo.setor },
+                            ].map(({ label, value }) => (
+                                <div key={label} className="p-3 rounded-xl bg-bg-elevated">
+                                    <p className="text-[10px] text-text-muted">{label}</p>
+                                    <p className="text-sm font-semibold text-text-primary mt-0.5">{value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Analysis */}
+                    {ativo.analise && (
+                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                            <p className="text-xs text-text-muted mb-2 font-semibold">📊 Análise</p>
+                            <p className="text-sm text-text-secondary leading-relaxed">{ativo.analise}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ─── Top FIIs cards ──────────────────────────────────────────
+const FIICard = ({ fii }: { fii: any }) => {
+    const getScoreCor = (s: number) => s >= 80 ? '#00e88f' : s >= 65 ? '#00b8ff' : s >= 50 ? '#f5c842' : '#ff4d6d'
+    const cor = getScoreCor(fii.score)
+    return (
+        <div className="card hover:border-primary/30 border border-surface-border cursor-pointer transition-all duration-200 hover:-translate-y-0.5">
+            <div className="flex items-start justify-between mb-3">
+                <div>
+                    <p className="text-sm font-black text-text-primary">{fii.ticker}</p>
+                    <p className="text-[11px] text-text-muted truncate">{fii.nome}</p>
+                </div>
+                <span className="text-xs font-bold" style={{ color: cor }}>{fii.score}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+                <div>
+                    <p className="text-text-muted">DY 12m</p>
+                    <p className="font-semibold text-primary">{fii.dy.toFixed(1)}%</p>
+                </div>
+                <div>
+                    <p className="text-text-muted">P/VP</p>
+                    <p className="font-semibold text-text-primary">{fii.pvp.toFixed(2)}</p>
+                </div>
+                <div>
+                    <p className="text-text-muted">Preço</p>
+                    <p className="font-semibold text-text-primary">{formatMoeda(fii.preco)}</p>
+                </div>
+            </div>
+            <div className="mt-3 h-1 bg-surface-border rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${fii.score}%`, backgroundColor: cor }} />
+            </div>
+        </div>
+    )
+}
+
+// ─── Main Page ───────────────────────────────────────────────
 export const DashboardPage = () => {
     const { carteira } = useCarteiraStore()
     const { usuario } = useUserStore()
+    const { acoes, loading: loadingAcoes } = useAcoes()
+    const { fiis, loading: loadingFIIs } = useFIIs()
+
+    const [selectedAtivo, setSelectedAtivo] = useState<Ativo | null>(null)
 
     const composicao = carteira.itens.map((item, i) => ({
         name: item.ticker,
@@ -21,10 +148,15 @@ export const DashboardPage = () => {
         color: COLORS[i % COLORS.length],
     }))
 
-    const destaques = ACOES_MOCK.filter(a => a.score >= 70).slice(0, 4)
+    const topFIIs = [...fiis].sort((a, b) => b.score - a.score).slice(0, 6)
 
     return (
         <div className="space-y-6 animate-fade-in">
+            {/* Detalhe Panel */}
+            {selectedAtivo && (
+                <DetalhePanel ativo={selectedAtivo} onClose={() => setSelectedAtivo(null)} />
+            )}
+
             {/* Welcome header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -33,7 +165,7 @@ export const DashboardPage = () => {
                     </h1>
                     <p className="text-text-secondary text-sm mt-1">Aqui está o resumo dos seus investimentos hoje.</p>
                 </div>
-                <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-xl px-4 py-2">
+                <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-xl px-4 py-2 hidden sm:flex">
                     <Star size={14} className="text-primary fill-primary" />
                     <span className="text-sm font-semibold text-primary">Score: {carteira.scoreCarteira}/100</span>
                 </div>
@@ -71,8 +203,13 @@ export const DashboardPage = () => {
                 />
             </div>
 
-            {/* Charts */}
+            {/* Spotlight + Chart Row */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                {/* Spotlight */}
+                <div className="xl:col-span-1">
+                    <SpotlightAcao acoes={acoes} loading={loadingAcoes} />
+                </div>
+
                 {/* Evolução Patrimonial */}
                 <div className="xl:col-span-2 card">
                     <h2 className="text-text-primary font-semibold mb-4">Evolução Patrimonial</h2>
@@ -93,6 +230,36 @@ export const DashboardPage = () => {
                             <Area type="monotone" dataKey="valor" stroke="#00e88f" strokeWidth={2} fill="url(#gradGreen)" />
                         </AreaChart>
                     </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Tabela de Ações */}
+            <TabelaIndicadas
+                acoes={acoes}
+                loading={loadingAcoes}
+                onSelectAtivo={setSelectedAtivo}
+            />
+
+            {/* FIIs em destaque + Composição */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                {/* Top FIIs */}
+                <div className="xl:col-span-2">
+                    <h2 className="text-text-primary font-semibold mb-4">🏢 Top FIIs por Score</h2>
+                    {loadingFIIs ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="card animate-pulse h-28">
+                                    <div className="h-4 bg-surface-border rounded mb-3 w-1/2" />
+                                    <div className="h-3 bg-surface-border rounded mb-4 w-3/4" />
+                                    <div className="h-3 bg-surface-border rounded w-full" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {topFIIs.map(fii => <FIICard key={fii.ticker} fii={fii} />)}
+                        </div>
+                    )}
                 </div>
 
                 {/* Composição */}
@@ -122,16 +289,6 @@ export const DashboardPage = () => {
                             </div>
                         ))}
                     </div>
-                </div>
-            </div>
-
-            {/* Ativos em Destaque */}
-            <div>
-                <h2 className="text-text-primary font-semibold mb-4">⭐ Ativos em Destaque</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {destaques.map(ativo => (
-                        <AtivoCard key={ativo.ticker} ativo={ativo} />
-                    ))}
                 </div>
             </div>
         </div>
