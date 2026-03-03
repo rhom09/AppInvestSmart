@@ -229,7 +229,9 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
                                                 <p className="text-sm font-bold text-text-primary">{a.ticker}</p>
                                                 <p className="text-xs text-text-muted truncate max-w-[200px]">{a.nome}</p>
                                             </div>
-                                            <span className="text-sm font-semibold text-primary">{formatMoeda(a.preco)}</span>
+                                            <span className="text-sm font-semibold text-primary">
+                                                {a.preco > 0 ? formatMoeda(a.preco) : ''}
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
