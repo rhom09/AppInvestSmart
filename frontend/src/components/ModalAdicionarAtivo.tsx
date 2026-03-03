@@ -90,10 +90,12 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
         if (ativo.preco === 0) {
             setBuscando(true)
             try {
-                const { data } = await api.get<{ data: Ativo; success: boolean }>(`/acoes/${ativo.ticker}`)
+                const { data } = await api.get<{ data: any; success: boolean }>(`/acoes/${ativo.ticker}`)
                 if (data.success && data.data) {
-                    setSelecionado(data.data)
-                    setPrecoMedio(String(data.data.preco))
+                    const precoReal = data.data.preco || data.data.regularMarketPrice || 0
+                    const ativoCompleto = { ...data.data, preco: precoReal }
+                    setSelecionado(ativoCompleto)
+                    setPrecoMedio(String(precoReal))
                     return
                 }
             } catch (e) {
@@ -103,8 +105,9 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
             }
         }
 
-        setSelecionado(ativo)
-        setPrecoMedio(String(ativo.preco))
+        const precoReal = ativo.preco || (ativo as any).regularMarketPrice || 0
+        setSelecionado({ ...ativo, preco: precoReal })
+        setPrecoMedio(String(precoReal))
     }
 
     const handleSalvar = async () => {
@@ -206,7 +209,7 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
 
                             {/* Autocomplete dropdown */}
                             {resultados.length > 0 && (
-                                <div className="absolute mt-1 w-full max-w-[calc(100%-40px)] bg-bg-elevated border border-surface-border rounded-xl shadow-xl z-10 max-h-48 overflow-y-auto">
+                                <div className="absolute mt-1 w-full max-w-[calc(100%-40px)] bg-bg-elevated border border-surface-border rounded-xl shadow-xl z-10 max-h-[200px] overflow-y-auto">
                                     {resultados.map(a => (
                                         <button
                                             key={a.ticker}
