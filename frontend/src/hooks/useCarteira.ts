@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { getCarteira, toItemCarteira } from '@/services/carteira.service'
 import type { ItemCarteira, ResumoCarteira } from '@/types'
 
+import { api } from '@/services/api' // <-- added import for api
+
 const EMPTY_CARTEIRA: ResumoCarteira = {
     totalInvestido: 0,
     totalAtual: 0,
@@ -16,14 +18,30 @@ const EMPTY_CARTEIRA: ResumoCarteira = {
     itens: [],
 }
 
-const buildResumo = (itens: ItemCarteira[]): ResumoCarteira => {
+const buildResumo = (itens: ItemCarteira[], tickerScores: Record<string, number> = {}): ResumoCarteira => {
     const totalInvestido = itens.reduce((s, i) => s + i.totalInvestido, 0)
     const totalAtual = itens.reduce((s, i) => s + i.totalAtual, 0)
+
+    // Calculate Score based on weighted average of individual asset scores (weighted by totalAtual)
+    let somaPesos = 0
+    let somaScoresPonderados = 0
+
+    itens.forEach(item => {
+        const score = tickerScores[item.ticker] || 0
+        if (score > 0) {
+            somaScoresPonderados += score * item.totalAtual
+            somaPesos += item.totalAtual
+        }
+    })
+
+    const scoreCarteira = somaPesos > 0 ? Math.round(somaScoresPonderados / somaPesos) : 0
+
     return {
         ...EMPTY_CARTEIRA,
         itens,
         totalInvestido,
         totalAtual,
+        scoreCarteira,
         resultado: totalAtual - totalInvestido,
         resultadoPercent: totalInvestido > 0
             ? ((totalAtual - totalInvestido) / totalInvestido) * 100
@@ -46,7 +64,25 @@ export const useCarteira = () => {
                 id: row.id ?? crypto.randomUUID(),
                 supabaseId: row.id,
             }))
-            setCarteira(buildResumo(itens))
+
+            // Buscar scores individuais dos ativos em paralelo
+            const tickerScores: Record<string, number> = {}
+            if (itens.length > 0) {
+                const tickersUnicos = Array.from(new Set(itens.map(i => i.ticker)))
+                const promessas = tickersUnicos.map(async (ticker) => {
+                    try {
+                        const { data } = await api.get<{ data: any; success: boolean }>(`/acoes/${ticker}`)
+                        if (data.success && data.data && data.data.score) {
+                            tickerScores[ticker] = data.data.score
+                        }
+                    } catch (e) {
+                        // ignore individual errors to not break full load
+                    }
+                })
+                await Promise.all(promessas)
+            }
+
+            setCarteira(buildResumo(itens, tickerScores))
         } catch (e) {
             console.error('Erro ao buscar carteira do Supabase:', e)
             setCarteira(EMPTY_CARTEIRA)
