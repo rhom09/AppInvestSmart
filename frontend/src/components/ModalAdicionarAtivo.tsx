@@ -82,32 +82,41 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
         return () => window.removeEventListener('keydown', handler)
     }, [onClose])
 
-    const selecionar = async (ativo: Ativo) => {
-        setQuery(ativo.ticker)
+    const selecionar = async (ativoOriginal: Ativo) => {
+        // Sempre garante o ticker do item clicado — nunca deixa vir da API raw
+        const tickerGarantido = ativoOriginal.ticker
+
+        setQuery(tickerGarantido)
         setResultados([])
 
-        // Se o preço veio zerado (foi convertido de uma string pura da /available), puxa o detalhe real
-        if (ativo.preco === 0) {
+        // Se preco === 0, o ativo veio como string pura da lista — busca o detalhe real
+        if (ativoOriginal.preco === 0) {
             setBuscando(true)
             try {
-                const { data } = await api.get<{ data: any; success: boolean }>(`/acoes/${ativo.ticker}`)
+                const { data } = await api.get<{ data: any; success: boolean }>(`/acoes/${tickerGarantido}`)
                 if (data.success && data.data) {
                     const precoReal = data.data.preco || data.data.regularMarketPrice || 0
-                    const ativoCompleto = { ...data.data, preco: precoReal }
+                    // Força o ticker correto — BRAPI raw usa 'symbol', não 'ticker'
+                    const ativoCompleto: Ativo = {
+                        ...data.data,
+                        ticker: tickerGarantido,
+                        preco: precoReal,
+                    }
                     setSelecionado(ativoCompleto)
-                    setPrecoMedio(String(precoReal))
+                    setPrecoMedio(precoReal > 0 ? String(precoReal) : '')
                     return
                 }
             } catch (e) {
-                console.error("Erro ao buscar detalhe do ativo", e)
+                console.error('Erro ao buscar detalhe do ativo', e)
             } finally {
                 setBuscando(false)
             }
         }
 
-        const precoReal = ativo.preco || (ativo as any).regularMarketPrice || 0
-        setSelecionado({ ...ativo, preco: precoReal })
-        setPrecoMedio(String(precoReal))
+        // Ativo já tinha preço — usa direto (também garante ticker)
+        const precoReal = ativoOriginal.preco || (ativoOriginal as any).regularMarketPrice || 0
+        setSelecionado({ ...ativoOriginal, ticker: tickerGarantido, preco: precoReal })
+        setPrecoMedio(precoReal > 0 ? String(precoReal) : '')
     }
 
     const handleSalvar = async () => {
