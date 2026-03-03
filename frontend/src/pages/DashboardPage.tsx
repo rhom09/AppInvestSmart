@@ -3,14 +3,16 @@ import { AreaChart, Area, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, XAx
 import { StatCard } from '@/components/StatCard'
 import { SpotlightAcao } from '@/components/SpotlightAcao'
 import { TabelaIndicadas } from '@/components/TabelaIndicadas'
-import { Wallet, TrendingUp, Star, DollarSign, X } from 'lucide-react'
+import { TickerBar } from '@/components/TickerBar'
+import { Wallet, TrendingUp, Star, DollarSign, X, ExternalLink, Radio } from 'lucide-react'
 import { useCarteiraStore } from '@/store/carteira.store'
 import { useAcoes } from '@/hooks/useAcoes'
 import { useFIIs } from '@/hooks/useFIIs'
+import { useNoticias } from '@/hooks/useNoticias'
 import { HISTORICO_PATRIMONIAL } from '@/data/mockData'
 import { formatMoeda, formatPercent } from '@/utils/formatters'
 import { useUserStore } from '@/store/user.store'
-import type { Ativo } from '@/types'
+import type { Ativo, Noticia } from '@/types'
 
 const COLORS = ['#00e88f', '#00b8ff', '#f0a500', '#ff4d6d', '#a78bfa']
 
@@ -139,6 +141,7 @@ export const DashboardPage = () => {
     const { usuario } = useUserStore()
     const { acoes, loading: loadingAcoes } = useAcoes()
     const { fiis, loading: loadingFIIs } = useFIIs()
+    const { noticias, loading: loadingNoticias } = useNoticias()
 
     const [selectedAtivo, setSelectedAtivo] = useState<Ativo | null>(null)
 
@@ -170,6 +173,9 @@ export const DashboardPage = () => {
                     <span className="text-sm font-semibold text-primary">Score: {carteira.scoreCarteira}/100</span>
                 </div>
             </div>
+
+            {/* TickerBar - market status + extra indices */}
+            <TickerBar />
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -239,6 +245,75 @@ export const DashboardPage = () => {
                 loading={loadingAcoes}
                 onSelectAtivo={setSelectedAtivo}
             />
+
+            {/* Feed de Notícias */}
+            <div className="card">
+                <div className="flex items-center gap-2 mb-4">
+                    <Radio size={16} className="text-primary" />
+                    <h2 className="text-text-primary font-semibold">Últimas Notícias</h2>
+                </div>
+                {loadingNoticias ? (
+                    <div className="space-y-3">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="animate-pulse flex gap-3 py-3 border-b border-surface-border/50">
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-4 bg-surface-border rounded w-3/4" />
+                                    <div className="h-3 bg-surface-border rounded w-1/2" />
+                                </div>
+                                <div className="h-5 w-16 bg-surface-border rounded-full" />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="divide-y divide-surface-border/50">
+                        {noticias.map((noticia) => {
+                            const sentColor = noticia.sentimento === 'POSITIVO'
+                                ? 'bg-primary/10 text-primary'
+                                : noticia.sentimento === 'NEGATIVO'
+                                    ? 'bg-danger/10 text-danger'
+                                    : 'bg-text-muted/10 text-text-muted'
+                            const sentLabel = noticia.sentimento === 'POSITIVO' ? 'Positivo'
+                                : noticia.sentimento === 'NEGATIVO' ? 'Negativo' : 'Neutro'
+                            const ago = (() => {
+                                const diff = (Date.now() - new Date(noticia.publicadoEm).getTime()) / 60000
+                                return diff < 60 ? `${Math.round(diff)}min atrás` : `${Math.round(diff / 60)}h atrás`
+                            })()
+                            return (
+                                <a
+                                    key={noticia.id}
+                                    href={noticia.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-start gap-3 py-3 hover:bg-bg-elevated transition-colors rounded-xl px-2 -mx-2 group"
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-text-primary group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                                            {noticia.titulo}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[11px] text-text-muted">{noticia.fonte}</span>
+                                            <span className="text-[11px] text-text-muted">·</span>
+                                            <span className="text-[11px] text-text-muted">{ago}</span>
+                                            {noticia.tickers && noticia.tickers.length > 0 && (
+                                                <>
+                                                    <span className="text-[11px] text-text-muted">·</span>
+                                                    {noticia.tickers.map(t => (
+                                                        <span key={t} className="text-[10px] font-bold text-primary bg-primary/10 rounded px-1">{t}</span>
+                                                    ))}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sentColor}`}>{sentLabel}</span>
+                                        <ExternalLink size={12} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </a>
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
 
             {/* FIIs em destaque + Composição */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
