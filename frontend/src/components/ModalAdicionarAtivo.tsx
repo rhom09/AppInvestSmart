@@ -48,12 +48,25 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
         debounceRef.current = setTimeout(async () => {
             setBuscando(true)
             try {
-                const { data } = await api.get<{ data: Ativo; success: boolean }>(`/acoes/${q.toUpperCase()}`)
-                if (data.success && data.data && data.data.ticker) {
-                    setResultados([data.data])
-                } else {
-                    setResultados([])
-                }
+                // Backend returns all assets on /acoes (either array of objects or strings if BRAPI)
+                const { data } = await api.get<{ data: any[] }>('/acoes')
+                const list = Array.isArray(data.data) ? data.data : []
+
+                // Normalize strings to Ativo format
+                const ativosNormalizados: Ativo[] = list.map(item =>
+                    typeof item === 'string'
+                        ? { ticker: item, nome: item, preco: 0, variacao: 0, variacaoPercent: 0 }
+                        : item
+                )
+
+                // Filter locally for autocomplete
+                const searchQ = q.toUpperCase()
+                const filtrados = ativosNormalizados.filter(a =>
+                    a.ticker.toUpperCase().includes(searchQ) ||
+                    (a.nome && a.nome.toUpperCase().includes(searchQ))
+                ).slice(0, 6)
+
+                setResultados(filtrados)
             } catch {
                 setResultados([])
             } finally {
@@ -69,11 +82,29 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
         return () => window.removeEventListener('keydown', handler)
     }, [onClose])
 
-    const selecionar = (ativo: Ativo) => {
-        setSelecionado(ativo)
+    const selecionar = async (ativo: Ativo) => {
         setQuery(ativo.ticker)
-        setPrecoMedio(String(ativo.preco))
         setResultados([])
+
+        // Se o preço veio zerado (foi convertido de uma string pura da /available), puxa o detalhe real
+        if (ativo.preco === 0) {
+            setBuscando(true)
+            try {
+                const { data } = await api.get<{ data: Ativo; success: boolean }>(`/acoes/${ativo.ticker}`)
+                if (data.success && data.data) {
+                    setSelecionado(data.data)
+                    setPrecoMedio(String(data.data.preco))
+                    return
+                }
+            } catch (e) {
+                console.error("Erro ao buscar detalhe do ativo", e)
+            } finally {
+                setBuscando(false)
+            }
+        }
+
+        setSelecionado(ativo)
+        setPrecoMedio(String(ativo.preco))
     }
 
     const handleSalvar = async () => {
