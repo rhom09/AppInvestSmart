@@ -214,28 +214,31 @@ export const ModalAdicionarAtivo = ({ onClose }: Props) => {
                                 {buscando && (
                                     <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary animate-spin" />
                                 )}
-                            </div>
 
-                            {/* Autocomplete dropdown */}
-                            {resultados.length > 0 && (
-                                <div className="absolute mt-1 w-full max-w-[calc(100%-40px)] bg-bg-elevated border border-surface-border rounded-xl shadow-xl z-10 max-h-[200px] overflow-y-auto">
-                                    {resultados.map(a => (
-                                        <button
-                                            key={a.ticker}
-                                            className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-bg-card transition-colors text-left"
-                                            onClick={() => selecionar(a)}
-                                        >
-                                            <div>
-                                                <p className="text-sm font-bold text-text-primary">{a.ticker}</p>
-                                                <p className="text-xs text-text-muted truncate max-w-[200px]">{a.nome}</p>
-                                            </div>
-                                            <span className="text-sm font-semibold text-primary">
-                                                {a.preco > 0 ? formatMoeda(a.preco) : ''}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                {/* Autocomplete dropdown */}
+                                {resultados.length > 0 && (
+                                    <div
+                                        className="mt-1 bg-bg-elevated border border-surface-border rounded-xl shadow-xl"
+                                        style={{ width: '100%', maxHeight: '200px', overflowY: 'auto', position: 'absolute', zIndex: 50 }}
+                                    >
+                                        {resultados.map(a => (
+                                            <button
+                                                key={a.ticker}
+                                                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-bg-card transition-colors text-left"
+                                                onClick={() => selecionar(a)}
+                                            >
+                                                <div>
+                                                    <p className="text-sm font-bold text-text-primary">{a.ticker}</p>
+                                                    <p className="text-xs text-text-muted truncate max-w-[200px]">{a.nome}</p>
+                                                </div>
+                                                <span className="text-sm font-semibold text-primary">
+                                                    {a.preco > 0 ? formatMoeda(a.preco) : ''}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Type */}
