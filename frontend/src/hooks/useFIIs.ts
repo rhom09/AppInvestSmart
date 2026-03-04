@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
+import { api } from '@/services/api'
 import type { FII } from '@/types'
-import { FIIS_MOCK } from '@/data/mockData'
 
 export const useFIIs = () => {
     const [fiis, setFiis] = useState<FII[]>([])
@@ -11,9 +11,20 @@ export const useFIIs = () => {
     useEffect(() => {
         const fetch = async () => {
             setLoading(true)
-            await new Promise(r => setTimeout(r, 500))
-            setFiis(FIIS_MOCK)
-            setLoading(false)
+            try {
+                const { data } = await api.get('/acoes')
+                if (data.success) {
+                    // Simples filtro por sufixo 11 (característica de FIIs)
+                    const filtered = data.data.filter((a: any) =>
+                        a.ticker?.endsWith('11') || a.type === 'fii'
+                    )
+                    setFiis(filtered)
+                }
+            } catch (err) {
+                console.error('Erro ao buscar FIIs:', err)
+            } finally {
+                setLoading(false)
+            }
         }
         fetch()
     }, [])

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Ativo } from '@/types'
+import { api } from '@/services/api'
 import { ACOES_MOCK } from '@/data/mockData'
 
 export const useAcoes = () => {

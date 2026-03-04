@@ -1,38 +1,44 @@
-import { brapiApi } from './api'
+import { api } from './api'
 import type { Ativo } from '@/types'
-import { ACOES_MOCK } from '@/data/mockData'
 
-// ─── Buscar cotações da BRAPI (fallback para mock) ─────────────────
+// ─── Buscar cotações da BRAPI (via backend proxy) ─────────────────
 export const fetchCotacoes = async (tickers: string[]): Promise<Ativo[]> => {
     try {
         const tickersStr = tickers.join(',')
-        const { data } = await brapiApi.get(`/quote/${tickersStr}`)
-        return data.results?.map((r: Record<string, unknown>) => ({
-            ticker: r.symbol,
-            nome: r.longName,
-            preco: r.regularMarketPrice,
-            variacao: r.regularMarketChange,
-            variacaoPercent: r.regularMarketChangePercent,
-            volume: r.regularMarketVolume,
+        const { data } = await api.get(`/acoes/${tickersStr}`)
+        // Se o backend retorna um único ativo ou lista
+        const results = Array.isArray(data.data) ? data.data : [data.data]
+        return results.map((r: any) => ({
+            ticker: r.ticker,
+            nome: r.nome,
+            preco: r.preco,
+            variacao: r.variacao,
+            variacaoPercent: r.variacaoPercent,
+            volume: r.volume,
             marketCap: r.marketCap,
-        })) ?? ACOES_MOCK
-    } catch {
-        console.warn('BRAPI indisponível, usando mock')
-        return ACOES_MOCK.filter(a => tickers.includes(a.ticker))
+        }))
+    } catch (err) {
+        console.error('Erro ao buscar cotações:', err)
+        return []
     }
 }
 
-// ─── Buscar lista de ativos (com fallback para mock) ───────────────
+// ─── Buscar lista de ativos (via backend proxy) ─────────────────────
 export const fetchAtivos = async (): Promise<Ativo[]> => {
     try {
-        const { data } = await brapiApi.get('/available')
-        console.log(`BRAPI: ${data.stocks?.length} ativos disponíveis`)
-        return ACOES_MOCK // retorna mock com fundamentais
-    } catch {
-        return ACOES_MOCK
+        const { data } = await api.get('/acoes')
+        return data.data || []
+    } catch (err) {
+        console.error('Erro ao listar ativos:', err)
+        return []
     }
 }
 
 export const fetchAtivoPorTicker = async (ticker: string): Promise<Ativo | undefined> => {
-    return ACOES_MOCK.find(a => a.ticker === ticker)
+    try {
+        const { data } = await api.get(`/acoes/${ticker}`)
+        return data.data
+    } catch {
+        return undefined
+    }
 }
