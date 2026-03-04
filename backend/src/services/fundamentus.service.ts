@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { load } from 'cheerio'
+import * as cheerio from 'cheerio'
 import { cacheService } from './cache.service'
 
 const URL_ACOES = 'https://www.fundamentus.com.br/resultado.php'
@@ -41,7 +41,7 @@ export const fundamentusService = {
         return cacheService.getOrSet('fundamentus_acoes', async () => {
             try {
                 const { data } = await axios.get(URL_ACOES, { headers: HEADERS })
-                const $ = load(data)
+                const $ = cheerio.load(data)
                 const result: FundamentusAcao[] = []
 
                 $('#resultado tr').each((i, el) => {
@@ -73,7 +73,7 @@ export const fundamentusService = {
         return cacheService.getOrSet('fundamentus_fiis', async () => {
             try {
                 const { data } = await axios.get(URL_FIIS, { headers: HEADERS })
-                const $ = load(data)
+                const $ = cheerio.load(data)
                 const result: FundamentusFII[] = []
 
                 // Try both possible IDs or just the table that looks like results
