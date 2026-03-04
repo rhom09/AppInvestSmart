@@ -24,7 +24,11 @@ app.use('/api/acoes', acoesRoutes)
 app.use('/api/fiis', fiisRoutes)
 app.use('/api/noticias', noticiasRoutes)
 
+import { adminRoutes } from './routes/admin.routes'
+
 // 404
+app.use('/api/admin', adminRoutes)
+
 app.use((_req, res) => {
     res.status(404).json({ success: false, message: 'Rota não encontrada' })
 })

@@ -64,4 +64,31 @@ router.get('/market/indices', async (_req, res) => {
     }
 })
 
+// GET /api/acoes/:ticker/score-historico - histórico de scores
+router.get('/:ticker/score-historico', async (req, res) => {
+    try {
+        const { ticker } = req.params
+        // Neste exemplo o Supabase é importado caso não criemos um arquivo service, ou usamos fetch
+        // Mas o correto é usar nosso supabase.service criado recentemente:
+        const { supabaseAdmin } = await import('../services/supabase.service')
+
+        const trintaDiasAtras = new Date()
+        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30)
+
+        const { data, error } = await supabaseAdmin
+            .from('scores_diarios')
+            .select('data, score, preco')
+            .eq('ticker', ticker.toUpperCase())
+            .gte('data', trintaDiasAtras.toISOString().split('T')[0])
+            .order('data', { ascending: true })
+
+        if (error) throw error
+
+        return res.json({ success: true, data })
+    } catch (err: any) {
+        console.error('Erro em /score-historico:', err.message || err)
+        return res.status(500).json({ success: false, message: 'Erro ao buscar histórico de score' })
+    }
+})
+
 export { router as acoesRoutes }
