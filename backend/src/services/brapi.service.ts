@@ -39,7 +39,13 @@ export const brapiService = {
                         nome: mock?.nome || s,
                         preco: mock?.preco || 0,
                         variacao: mock?.variacao || 0,
-                        variacaoPercent: mock?.variacaoPercent || 0
+                        variacaoPercent: mock?.variacaoPercent || 0,
+                        score: mock?.score || 0,
+                        pl: mock?.pl || 0,
+                        pvp: mock?.pvp || 0,
+                        dy: mock?.dy || 0,
+                        roe: mock?.roe || 0,
+                        margemLiquida: mock?.margemLiquida || 0
                     }
                 })
             } catch {
@@ -88,11 +94,11 @@ export const brapiService = {
                             : (mockInfo?.pvp || null),
                         dy: dyScore > 0 ? dyScore : (mockInfo?.dy || 0),
                         dyMensal: res.symbol.endsWith('11') ? (dyMensal > 0 ? dyMensal : mockInfo?.dyMensal) : undefined,
-                        roe: res.returnOnEquity != null ? res.returnOnEquity * 100 : (mockInfo?.roe || null),
-                        margemLiquida: res.netMargin != null ? res.netMargin * 100 : (mockInfo?.margemLiquida || null),
+                        roe: res.returnOnEquity != null && res.returnOnEquity !== 0 ? res.returnOnEquity * 100 : (mockInfo?.roe || 0),
+                        margemLiquida: res.netMargin != null && res.netMargin !== 0 ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0),
                         vacancia: res.vacancy != null ? res.vacancy : (mockInfo?.vacancia || undefined),
                         liquidez: res.regularMarketVolume || undefined,
-                        score: mockInfo?.score || undefined
+                        score: mockInfo?.score || 0
                     }
                 }
 
