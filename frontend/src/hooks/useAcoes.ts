@@ -16,8 +16,13 @@ export const useAcoes = () => {
         setLoading(true)
         try {
             const { data } = await api.get('/acoes')
-            if (data.success) {
-                setAcoes(data.data)
+            if (data.success && Array.isArray(data.data)) {
+                const normalized = data.data.map((a: any) =>
+                    typeof a === 'string'
+                        ? { ticker: a, nome: a, preco: 0, variacao: 0, variacaoPercent: 0 }
+                        : a
+                )
+                setAcoes(normalized)
             }
             setError(null)
         } catch {
