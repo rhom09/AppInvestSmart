@@ -1,6 +1,7 @@
 import axios from 'axios'
 import dotenv from 'dotenv'
 import { cacheService } from './cache.service'
+import { fundamentusService } from './fundamentus.service'
 
 dotenv.config()
 
@@ -31,21 +32,29 @@ export const brapiService = {
                 const { data } = await axios.get(`${BRAPI_BASE}/available`, { params: { token: TOKEN } })
                 const stocks = data.stocks?.slice(0, 80) ?? []
 
+                // Get Fundamentus data for enrichment
+                const fundAcoes = await fundamentusService.scrapingAcoes()
+                const fundFIIs = await fundamentusService.scrapingFIIs()
+
                 // Convert list of strings into objects { ticker, nome }
                 return stocks.map((s: string) => {
                     const mock = MOCK_ATIVOS.find(m => m.ticker === s)
+                    const fAcao = fundAcoes.find(a => a.ticker === s)
+                    const fFII = fundFIIs.find(f => f.ticker === s)
+
                     return {
                         ticker: s,
                         nome: mock?.nome || s,
                         preco: mock?.preco || 0,
                         variacao: mock?.variacao || 0,
                         variacaoPercent: mock?.variacaoPercent || 0,
+                        // Use Fundamentus data if available, fallback to mock, then 0
                         score: mock?.score || 0,
-                        pl: mock?.pl || 0,
-                        pvp: mock?.pvp || 0,
-                        dy: mock?.dy || 0,
-                        roe: mock?.roe || 0,
-                        margemLiquida: mock?.margemLiquida || 0
+                        pl: fAcao ? fAcao.pl : (mock?.pl || 0),
+                        pvp: fAcao ? fAcao.pvp : (fFII ? fFII.pvp : (mock?.pvp || 0)),
+                        dy: fAcao ? fAcao.dy : (fFII ? fFII.dy : (mock?.dy || 0)),
+                        roe: fAcao ? fAcao.roe : (mock?.roe || 0),
+                        margemLiquida: fAcao ? fAcao.margemLiquida : (mock?.margemLiquida || 0)
                     }
                 })
             } catch {
@@ -65,7 +74,7 @@ export const brapiService = {
                 if (!result) return null
 
                 // Mapear propriedades do BRAPI para o padrão esperado pelo nosso score.service
-                const mapFundamentals = (res: any) => {
+                const mapFundamentals = (res: any, fundAcoes: any[], fundFIIs: any[]) => {
                     const price = res.regularMarketPrice || 0
 
                     // Cálculo aproximado de DY (12m)
@@ -85,24 +94,30 @@ export const brapiService = {
 
                     // FII e Ações fields
                     const mockInfo = MOCK_ATIVOS.find(m => m.ticker === res.symbol)
+                    const fundAcao = fundAcoes.find(a => a.ticker === res.symbol)
+                    const fundFII = fundFIIs.find(f => f.ticker === res.symbol)
+
                     return {
                         ticker: res.symbol,
                         ...res,
-                        pl: res.priceEarnings != null ? res.priceEarnings : (mockInfo?.pl || null),
-                        pvp: (price > 0 && res.regularMarketPreviousClose && res.earningsPerShare)
-                            ? (price / (res.regularMarketPreviousClose / res.priceEarnings)) // Fallback if no VPA
-                            : (mockInfo?.pvp || null),
-                        dy: dyScore > 0 ? dyScore : (mockInfo?.dy || 0),
-                        dyMensal: res.symbol.endsWith('11') ? (dyMensal > 0 ? dyMensal : mockInfo?.dyMensal) : undefined,
-                        roe: res.returnOnEquity != null && res.returnOnEquity !== 0 ? res.returnOnEquity * 100 : (mockInfo?.roe || 0),
-                        margemLiquida: res.netMargin != null && res.netMargin !== 0 ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0),
-                        vacancia: res.vacancy != null ? res.vacancy : (mockInfo?.vacancia || undefined),
-                        liquidez: res.regularMarketVolume || undefined,
+                        pl: fundAcao ? fundAcao.pl : (res.priceEarnings != null ? res.priceEarnings : (mockInfo?.pl || 0)),
+                        pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : ((price > 0 && res.regularMarketPreviousClose && res.earningsPerShare)
+                            ? (price / (res.regularMarketPreviousClose / res.priceEarnings))
+                            : (mockInfo?.pvp || 0))),
+                        dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore > 0 ? dyScore : (mockInfo?.dy || 0))),
+                        dyMensal: res.symbol.endsWith('11') ? (fundFII ? fundFII.dy / 12 : (dyMensal > 0 ? dyMensal : mockInfo?.dyMensal)) : undefined,
+                        roe: fundAcao ? fundAcao.roe : (res.returnOnEquity != null && res.returnOnEquity !== 0 ? res.returnOnEquity * 100 : (mockInfo?.roe || 0)),
+                        margemLiquida: fundAcao ? fundAcao.margemLiquida : (res.netMargin != null && res.netMargin !== 0 ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0)),
+                        vacancia: fundFII ? fundFII.vacancia : (res.vacancy != null ? res.vacancy : (mockInfo?.vacancia || undefined)),
+                        liquidez: fundFII ? fundFII.liquidez : (res.regularMarketVolume || undefined),
                         score: mockInfo?.score || 0
                     }
                 }
 
-                return mapFundamentals(result)
+                // Need data for merging
+                const fundAcoes = await fundamentusService.scrapingAcoes()
+                const fundFIIs = await fundamentusService.scrapingFIIs()
+                return mapFundamentals(result, fundAcoes, fundFIIs)
             } catch {
                 return MOCK_ATIVOS.find(a => a.ticker === ticker)
             }
