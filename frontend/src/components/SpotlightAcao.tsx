@@ -88,11 +88,11 @@ export const SpotlightAcao = ({ acoes, loading }: Props) => {
                             </div>
                             <div>
                                 <p className="text-[10px] text-text-muted uppercase">DY</p>
-                                <p className="text-lg font-bold text-primary">{(animDY / 10).toFixed(1)}%</p>
+                                <p className="text-lg font-bold text-primary">{((animDY ?? 0) / 10).toFixed(1)}%</p>
                             </div>
                             <div>
                                 <p className="text-[10px] text-text-muted uppercase">ROE</p>
-                                <p className="text-lg font-bold text-text-primary">{(animROE / 10).toFixed(1)}%</p>
+                                <p className="text-lg font-bold text-text-primary">{((animROE ?? 0) / 10).toFixed(1)}%</p>
                             </div>
                         </div>
 

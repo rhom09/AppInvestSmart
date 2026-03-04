@@ -11,10 +11,11 @@ export const formatPercent = (valor: number, casas = 2): string =>
     `${valor >= 0 ? '+' : ''}${formatNumero(valor, casas)}%`
 
 export const formatMillions = (valor: number): string => {
-    if (valor >= 1_000_000_000) return `R$ ${(valor / 1_000_000_000).toFixed(1)}B`
-    if (valor >= 1_000_000) return `R$ ${(valor / 1_000_000).toFixed(1)}M`
-    if (valor >= 1_000) return `R$ ${(valor / 1_000).toFixed(1)}K`
-    return formatMoeda(valor)
+    const v = valor ?? 0
+    if (v >= 1_000_000_000) return `R$ ${(v / 1_000_000_000).toFixed(1)}B`
+    if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`
+    if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(1)}K`
+    return formatMoeda(v)
 }
 
 // ─── Datas ───────────────────────────────────────────────────────────

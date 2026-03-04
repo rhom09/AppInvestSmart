@@ -37,15 +37,15 @@ export const AtivoCard = ({ ativo, onClick, compact = false }: AtivoCardProps) =
                     <div className="flex gap-4 mt-2">
                         <div>
                             <p className="text-[10px] text-text-muted">P/L</p>
-                            <p className="text-xs font-semibold text-text-secondary">{ativo.pl > 0 ? ativo.pl.toFixed(1) : 'N/A'}</p>
+                            <p className="text-xs font-semibold text-text-secondary">{ativo.pl > 0 ? (ativo.pl ?? 0).toFixed(1) : 'N/A'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] text-text-muted">DY</p>
-                            <p className="text-xs font-semibold text-text-secondary">{ativo.dy.toFixed(1)}%</p>
+                            <p className="text-xs font-semibold text-text-secondary">{(ativo.dy ?? 0).toFixed(1)}%</p>
                         </div>
                         <div>
                             <p className="text-[10px] text-text-muted">ROE</p>
-                            <p className="text-xs font-semibold text-text-secondary">{ativo.roe.toFixed(1)}%</p>
+                            <p className="text-xs font-semibold text-text-secondary">{(ativo.roe ?? 0).toFixed(1)}%</p>
                         </div>
                     </div>
                 )}

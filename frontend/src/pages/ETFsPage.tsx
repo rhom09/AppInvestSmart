@@ -34,11 +34,11 @@ export const ETFsPage = () => {
                         <div className="grid grid-cols-3 gap-2">
                             <div className="bg-bg-elevated rounded-lg p-2 text-center">
                                 <p className="text-[10px] text-text-muted">DY</p>
-                                <p className="text-xs font-bold text-primary">{etf.dy.toFixed(1)}%</p>
+                                <p className="text-xs font-bold text-primary">{(etf.dy ?? 0).toFixed(1)}%</p>
                             </div>
                             <div className="bg-bg-elevated rounded-lg p-2 text-center">
                                 <p className="text-[10px] text-text-muted">P/L</p>
-                                <p className="text-xs font-bold text-text-secondary">{etf.pl > 0 ? etf.pl.toFixed(1) : 'N/A'}</p>
+                                <p className="text-xs font-bold text-text-secondary">{etf.pl > 0 ? (etf.pl ?? 0).toFixed(1) : 'N/A'}</p>
                             </div>
                             <div className="bg-bg-elevated rounded-lg p-2 text-center">
                                 <p className="text-[10px] text-text-muted">Patrim.</p>

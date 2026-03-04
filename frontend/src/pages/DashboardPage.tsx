@@ -62,7 +62,7 @@ const DetalhePanel = ({ ativo, onClose }: { ativo: Ativo; onClose: () => void })
                         <div className="p-3 rounded-xl bg-bg-elevated">
                             <p className="text-[11px] text-text-muted mb-1">Variação</p>
                             <p className={`text-lg font-bold ${ativo.variacaoPercent >= 0 ? 'text-primary' : 'text-danger'}`}>
-                                {ativo.variacaoPercent >= 0 ? '+' : ''}{ativo.variacaoPercent.toFixed(2)}%
+                                {ativo.variacaoPercent >= 0 ? '+' : ''}{(ativo.variacaoPercent ?? 0).toFixed(2)}%
                             </p>
                         </div>
                     </div>
@@ -72,11 +72,11 @@ const DetalhePanel = ({ ativo, onClose }: { ativo: Ativo; onClose: () => void })
                         <p className="text-xs text-text-muted uppercase tracking-wider mb-3">Indicadores</p>
                         <div className="grid grid-cols-2 gap-2">
                             {[
-                                { label: 'P/L', value: ativo.pl > 0 ? ativo.pl.toFixed(1) : '—' },
-                                { label: 'P/VP', value: ativo.pvp > 0 ? ativo.pvp.toFixed(2) : '—' },
-                                { label: 'DY', value: `${ativo.dy.toFixed(1)}%` },
-                                { label: 'ROE', value: ativo.roe > 0 ? `${ativo.roe.toFixed(1)}%` : '—' },
-                                { label: 'Margem Liq.', value: ativo.margemLiquida > 0 ? `${ativo.margemLiquida.toFixed(1)}%` : '—' },
+                                { label: 'P/L', value: ativo.pl > 0 ? (ativo.pl ?? 0).toFixed(1) : '—' },
+                                { label: 'P/VP', value: ativo.pvp > 0 ? (ativo.pvp ?? 0).toFixed(2) : '—' },
+                                { label: 'DY', value: `${(ativo.dy ?? 0).toFixed(1)}%` },
+                                { label: 'ROE', value: ativo.roe > 0 ? `${(ativo.roe ?? 0).toFixed(1)}%` : '—' },
+                                { label: 'Margem Liq.', value: ativo.margemLiquida > 0 ? `${(ativo.margemLiquida ?? 0).toFixed(1)}%` : '—' },
                                 { label: 'Setor', value: ativo.setor },
                             ].map(({ label, value }) => (
                                 <div key={label} className="p-3 rounded-xl bg-bg-elevated">
@@ -116,11 +116,11 @@ const FIICard = ({ fii }: { fii: any }) => {
             <div className="flex justify-between text-xs">
                 <div>
                     <p className="text-text-muted">DY 12m</p>
-                    <p className="font-semibold text-primary">{fii.dy.toFixed(1)}%</p>
+                    <p className="font-semibold text-primary">{(fii.dy ?? 0).toFixed(1)}%</p>
                 </div>
                 <div>
                     <p className="text-text-muted">P/VP</p>
-                    <p className="font-semibold text-text-primary">{fii.pvp.toFixed(2)}</p>
+                    <p className="font-semibold text-text-primary">{(fii.pvp ?? 0).toFixed(2)}</p>
                 </div>
                 <div>
                     <p className="text-text-muted">Preço</p>
@@ -356,7 +356,7 @@ export const DashboardPage = () => {
                                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                                     <span className="text-text-secondary">{item.name}</span>
                                 </div>
-                                <span className="text-text-primary font-medium">{((item.value / carteira.totalAtual) * 100).toFixed(1)}%</span>
+                                <span className="text-text-primary font-medium">{(((item.value ?? 0) / (carteira.totalAtual || 1)) * 100).toFixed(1)}%</span>
                             </div>
                         ))}
                     </div>

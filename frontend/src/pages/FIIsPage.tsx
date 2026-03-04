@@ -56,12 +56,12 @@ export const FIIsPage = () => {
                                                 <td className="px-4 py-3 text-sm font-semibold text-text-primary">{formatMoeda(fii.preco)}</td>
                                                 <td className="px-4 py-3"><VariacaoBadge variacao={fii.variacaoPercent} size="sm" /></td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`text-sm font-semibold ${fii.pvp < 1 ? 'text-primary' : fii.pvp < 1.2 ? 'text-warning' : 'text-danger'}`}>
-                                                        {fii.pvp.toFixed(2)}
+                                                    <span className={`text-sm font-semibold ${(fii.pvp ?? 0) < 1 ? 'text-primary' : (fii.pvp ?? 0) < 1.2 ? 'text-warning' : 'text-danger'}`}>
+                                                        {(fii.pvp ?? 0).toFixed(2)}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm font-semibold text-primary">{fii.dy.toFixed(1)}%</td>
-                                                <td className="px-4 py-3 text-sm text-text-secondary">{fii.dyMensal.toFixed(2)}%</td>
+                                                <td className="px-4 py-3 text-sm font-semibold text-primary">{(fii.dy ?? 0).toFixed(1)}%</td>
+                                                <td className="px-4 py-3 text-sm text-text-secondary">{(fii.dyMensal ?? 0).toFixed(2)}%</td>
                                                 <td className="px-4 py-3 w-24"><ScoreBar score={fii.score} size="sm" /></td>
                                             </tr>
                                         ))}

@@ -147,7 +147,7 @@ export const CarteiraPage = () => {
                         <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={projecaoGrafico} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                                 <XAxis dataKey="mes" tick={{ fill: '#52607a', fontSize: 10 }} tickFormatter={v => `${v}m`} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fill: '#52607a', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                                <YAxis tick={{ fill: '#52607a', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${((v ?? 0) / 1000).toFixed(0)}k`} />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#0e1117', border: '1px solid #1e2535', borderRadius: '12px', color: '#e8eaf0' }}
                                     formatter={(v: number | undefined) => [formatMoeda(Number(v) || 0), '']}

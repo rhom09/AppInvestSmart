@@ -70,8 +70,8 @@ export const TabelaIndicadas = ({ acoes, loading, onSelectAtivo }: Props) => {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${activeTab === tab.id
-                                    ? 'bg-primary text-bg-primary'
-                                    : 'text-text-muted hover:text-text-primary'
+                                ? 'bg-primary text-bg-primary'
+                                : 'text-text-muted hover:text-text-primary'
                                 }`}
                         >
                             {tab.label}
@@ -121,14 +121,14 @@ export const TabelaIndicadas = ({ acoes, loading, onSelectAtivo }: Props) => {
                                             <td className="py-3 px-4 text-right">
                                                 <p className="font-semibold text-text-primary">{formatMoeda(ativo.preco)}</p>
                                                 <p className={`text-[11px] font-bold ${ativo.variacaoPercent >= 0 ? 'text-primary' : 'text-danger'}`}>
-                                                    {ativo.variacaoPercent >= 0 ? '+' : ''}{ativo.variacaoPercent.toFixed(2)}%
+                                                    {ativo.variacaoPercent >= 0 ? '+' : ''}{(ativo.variacaoPercent ?? 0).toFixed(2)}%
                                                 </p>
                                             </td>
-                                            <td className="py-3 px-4 text-right text-text-secondary">{ativo.pl > 0 ? ativo.pl.toFixed(1) : '—'}</td>
+                                            <td className="py-3 px-4 text-right text-text-secondary">{ativo.pl > 0 ? (ativo.pl ?? 0).toFixed(1) : '—'}</td>
                                             <td className="py-3 px-4 text-right">
-                                                <span className="text-primary font-semibold">{ativo.dy.toFixed(1)}%</span>
+                                                <span className="text-primary font-semibold">{(ativo.dy ?? 0).toFixed(1)}%</span>
                                             </td>
-                                            <td className="py-3 px-4 text-right text-text-secondary">{ativo.roe > 0 ? `${ativo.roe.toFixed(1)}%` : '—'}</td>
+                                            <td className="py-3 px-4 text-right text-text-secondary">{ativo.roe > 0 ? `${(ativo.roe ?? 0).toFixed(1)}%` : '—'}</td>
                                             <td className="py-3 px-4">
                                                 <ScoreBar score={ativo.score} cor={cor} />
                                             </td>

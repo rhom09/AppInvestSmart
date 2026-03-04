@@ -19,7 +19,7 @@ export const VariacaoBadge = ({ variacao, variacaoPercent, showIcon = true, size
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg font-semibold ${textSize[size]} ${colorClass}`}>
             {showIcon && <Icon size={iconSize[size]} />}
-            {isPositive ? '+' : ''}{pct.toFixed(2)}%
+            {isPositive ? '+' : ''}{(pct ?? 0).toFixed(2)}%
         </span>
     )
 }

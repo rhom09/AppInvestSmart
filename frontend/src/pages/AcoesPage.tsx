@@ -66,9 +66,9 @@ export const AcoesPage = () => {
                                                 </td>
                                                 <td className="px-4 py-3 text-sm font-semibold text-text-primary">{formatMoeda(ativo.preco)}</td>
                                                 <td className="px-4 py-3"><VariacaoBadge variacao={ativo.variacaoPercent} size="sm" /></td>
-                                                <td className="px-4 py-3 text-sm text-text-secondary">{ativo.pl > 0 ? ativo.pl.toFixed(1) : 'N/A'}</td>
-                                                <td className="px-4 py-3 text-sm text-text-secondary">{ativo.dy.toFixed(1)}%</td>
-                                                <td className="px-4 py-3 text-sm text-text-secondary">{ativo.roe.toFixed(1)}%</td>
+                                                <td className="px-4 py-3 text-sm text-text-secondary">{ativo.pl > 0 ? (ativo.pl ?? 0).toFixed(1) : 'N/A'}</td>
+                                                <td className="px-4 py-3 text-sm text-text-secondary">{(ativo.dy ?? 0).toFixed(1)}%</td>
+                                                <td className="px-4 py-3 text-sm text-text-secondary">{(ativo.roe ?? 0).toFixed(1)}%</td>
                                                 <td className="px-4 py-3 w-24">
                                                     <ScoreBar score={ativo.score} size="sm" />
                                                 </td>

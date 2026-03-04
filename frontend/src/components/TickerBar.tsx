@@ -67,8 +67,8 @@ export const TickerBar = () => {
         <div className="flex items-center gap-4 md:gap-6 overflow-x-auto no-scrollbar py-2.5 px-4 bg-bg-elevated/60 border-b border-surface-border w-full">
             {/* Market status badge */}
             <div className={`flex items-center gap-1.5 text-[11px] font-bold rounded-full px-2.5 py-1 whitespace-nowrap flex-shrink-0 ${mercadoAberto
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'bg-danger/10 text-danger border border-danger/20'
+                ? 'bg-primary/10 text-primary border border-primary/20'
+                : 'bg-danger/10 text-danger border border-danger/20'
                 }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${mercadoAberto ? 'bg-primary animate-pulse' : 'bg-danger'}`} />
                 {mercadoAberto ? 'Mercado aberto' : 'Mercado fechado'}
@@ -84,10 +84,10 @@ export const TickerBar = () => {
                 const isRate = ['SELIC', 'IPCA', 'CDI'].includes(index.ticker)
                 const isUSD = index.ticker === 'USD'
                 const value = isRate
-                    ? `${index.close.toFixed(2)}%`
+                    ? `${(index.close ?? 0).toFixed(2)}%`
                     : isUSD
-                        ? formatMoeda(index.close)
-                        : formatMoeda(index.close).replace('R$', '').trim()
+                        ? formatMoeda(index.close ?? 0)
+                        : formatMoeda(index.close ?? 0).replace('R$', '').trim()
 
                 return (
                     <div key={index.ticker} className="flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
@@ -100,7 +100,7 @@ export const TickerBar = () => {
                                 : isNegative
                                     ? <TrendingDown size={9} />
                                     : <Minus size={9} />}
-                            <span>{Math.abs(index.variation).toFixed(2)}%</span>
+                            <span>{(Math.abs(index.variation ?? 0)).toFixed(2)}%</span>
                         </div>
                     </div>
                 )
