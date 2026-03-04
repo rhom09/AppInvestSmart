@@ -102,11 +102,11 @@ export const AcoesPage = () => {
 
                             <div className="grid grid-cols-2 gap-3">
                                 {[
-                                    { l: 'P/L', v: selected.pl > 0 ? selected.pl.toFixed(1) : 'N/A' },
-                                    { l: 'P/VP', v: selected.pvp.toFixed(2) },
-                                    { l: 'DY 12m', v: `${selected.dy.toFixed(1)}%` },
-                                    { l: 'ROE', v: `${selected.roe.toFixed(1)}%` },
-                                    { l: 'Marg. Liq.', v: `${selected.margemLiquida.toFixed(1)}%` },
+                                    { l: 'P/L', v: selected.pl > 0 ? (selected.pl ?? 0).toFixed(1) : 'N/A' },
+                                    { l: 'P/VP', v: (selected.pvp ?? 0).toFixed(2) },
+                                    { l: 'DY 12m', v: `${(selected.dy ?? 0).toFixed(1)}%` },
+                                    { l: 'ROE', v: `${(selected.roe ?? 0).toFixed(1)}%` },
+                                    { l: 'Marg. Liq.', v: `${(selected.margemLiquida ?? 0).toFixed(1)}%` },
                                     { l: 'Market Cap', v: formatMillions(selected.marketCap) },
                                 ].map(({ l, v }) => (
                                     <div key={l} className="bg-bg-elevated rounded-xl p-3">
