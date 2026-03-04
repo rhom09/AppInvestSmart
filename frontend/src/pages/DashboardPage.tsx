@@ -4,7 +4,7 @@ import { StatCard } from '@/components/StatCard'
 import { SpotlightAcao } from '@/components/SpotlightAcao'
 import { TabelaIndicadas } from '@/components/TabelaIndicadas'
 import { Wallet, TrendingUp, Star, DollarSign, X, ExternalLink, Radio } from 'lucide-react'
-import { useCarteiraStore } from '@/store/carteira.store'
+import { useCarteira } from '@/hooks/useCarteira'
 import { useAcoes } from '@/hooks/useAcoes'
 import { useFIIs } from '@/hooks/useFIIs'
 import { useNoticias } from '@/hooks/useNoticias'
@@ -136,7 +136,7 @@ const FIICard = ({ fii }: { fii: any }) => {
 
 // ─── Main Page ───────────────────────────────────────────────
 export const DashboardPage = () => {
-    const { carteira } = useCarteiraStore()
+    const { carteira } = useCarteira()
     const { usuario } = useUserStore()
     const { acoes, loading: loadingAcoes } = useAcoes()
     const { fiis, loading: loadingFIIs } = useFIIs()
