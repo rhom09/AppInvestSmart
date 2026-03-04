@@ -33,8 +33,8 @@ app.use((_req, res) => {
     res.status(404).json({ success: false, message: 'Rota não encontrada' })
 })
 
-app.listen(PORT, () => {
-    console.log(`🚀 InvestSmart Backend rodando em http://localhost:${PORT}`)
+app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log('🚀 InvestSmart Backend rodando na porta ' + PORT)
     console.log(`📊 BRAPI Token: ${process.env.BRAPI_TOKEN ? '✅ Configurado' : '⚠️  Não configurado (usando mock)'}`)
     console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL ? '✅ Configurado' : '⚠️  Não configurado'}`)
 })
