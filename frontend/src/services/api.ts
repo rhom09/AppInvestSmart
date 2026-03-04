@@ -1,8 +1,10 @@
 import axios from 'axios'
 
 // ─── Instância base para nosso backend ─────────────────────────────
+const API_URL = import.meta.env.VITE_API_URL || 'https://appinvestsmart-production.up.railway.app'
+
 export const api = axios.create({
-    baseURL: '/api',
+    baseURL: API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`,
     timeout: 10000,
     headers: { 'Content-Type': 'application/json' },
 })
