@@ -29,7 +29,19 @@ export const brapiService = {
             }
             try {
                 const { data } = await axios.get(`${BRAPI_BASE}/available`, { params: { token: TOKEN } })
-                return data.stocks?.slice(0, 50) ?? MOCK_ATIVOS
+                const stocks = data.stocks?.slice(0, 80) ?? []
+
+                // Convert list of strings into objects { ticker, nome }
+                return stocks.map((s: string) => {
+                    const mock = MOCK_ATIVOS.find(m => m.ticker === s)
+                    return {
+                        ticker: s,
+                        nome: mock?.nome || s,
+                        preco: mock?.preco || 0,
+                        variacao: mock?.variacao || 0,
+                        variacaoPercent: mock?.variacaoPercent || 0
+                    }
+                })
             } catch {
                 return MOCK_ATIVOS
             }
