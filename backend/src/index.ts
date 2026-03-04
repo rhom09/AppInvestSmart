@@ -11,7 +11,7 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3001
 
-app.use(cors({ origin: ['https://investsmart.vercel.app', 'http://localhost:5173', 'http://localhost:5174'] }))
+app.use(cors({ origin: ['https://app-invest-smart.vercel.app', 'https://investsmart.vercel.app', 'http://localhost:5173', 'http://localhost:5174'] }))
 app.use(express.json())
 
 // Health check
