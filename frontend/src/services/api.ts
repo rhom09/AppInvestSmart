@@ -1,7 +1,12 @@
 import axios from 'axios'
 
 // ─── Instância base para nosso backend ─────────────────────────────
-const API_URL = import.meta.env.VITE_API_URL || 'https://appinvestsmart-production.up.railway.app'
+let API_URL = import.meta.env.VITE_API_URL || 'https://appinvestsmart-production.up.railway.app'
+
+// Ensure protocol is present to avoid relative path issues in production
+if (API_URL && !API_URL.startsWith('http')) {
+    API_URL = `https://${API_URL}`
+}
 
 export const api = axios.create({
     baseURL: API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`,
