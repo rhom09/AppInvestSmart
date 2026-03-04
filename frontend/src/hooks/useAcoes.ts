@@ -14,8 +14,10 @@ export const useAcoes = () => {
     const fetchAcoes = useCallback(async () => {
         setLoading(true)
         try {
-            await new Promise(r => setTimeout(r, 600))
-            setAcoes(ACOES_MOCK)
+            const { data } = await api.get('/acoes')
+            if (data.success) {
+                setAcoes(data.data)
+            }
             setError(null)
         } catch {
             setError('Falha ao carregar ações')
