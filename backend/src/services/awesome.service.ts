@@ -24,6 +24,6 @@ export const awesomeService = {
                     variation: 0
                 }
             }
-        })
+        }, 1800) // 30 minutos (evita 429 Error)
     }
 }

@@ -11,8 +11,8 @@ export const bcbService = {
     async buscarIPCA12m() {
         return cacheService.getOrSet('bcb_ipca_12m', async () => {
             try {
-                // Buscamos as últimas 12 ocorrências da variação mensal
-                const { data } = await axios.get(`${BCB_SGS_URL}/433/dados/ultimos/12?formato=json`)
+                // Buscamos as últimas 12 ocorrências da variação mensal (corrigindo URL para .433)
+                const { data } = await axios.get(`${BCB_SGS_URL}.433/dados/ultimos/12?formato=json`)
 
                 // Calculamos o produto das variações (1 + v1) * (1 + v2) ...
                 const acumulado = data.reduce((acc: number, item: { valor: string }) => {
