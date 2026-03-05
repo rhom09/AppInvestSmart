@@ -148,6 +148,8 @@ export const brapiService = {
 
     async buscarVariosAtivos(tickers: string[]) {
         const token = process.env.BRAPI_TOKEN
+        console.log(`🔍 [BRAPI_DEBUG] Buscando ${tickers.length} ativos. Token presente: ${!!token}`)
+
         if (!token) return MOCK_ATIVOS.filter(a => tickers.includes(a.ticker))
         try {
             const tickersStr = tickers.join(',')
