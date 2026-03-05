@@ -148,73 +148,74 @@ export const brapiService = {
 
     async buscarVariosAtivos(tickers: string[]) {
         const token = process.env.BRAPI_TOKEN
-        console.log(`🔍 [BRAPI_DEBUG] Buscando ${tickers.length} ativos: ${tickers.join(',')}. Token presente: ${!!token}`)
-
         if (!token) return MOCK_ATIVOS.filter(a => tickers.includes(a.ticker))
-        try {
-            const tickersStr = tickers.join(',')
-            const response = await axios.get(`${BRAPI_BASE}/quote/${tickersStr}`, {
-                params: { token, fundamental: true }
+
+        console.log(`🔍 [BRAPI] Buscando ${tickers.length} ativos individualmente (limite Brapi Free)`)
+
+        const results: any[] = []
+        const CONCURRENCY_LIMIT = 5
+
+        for (let i = 0; i < tickers.length; i += CONCURRENCY_LIMIT) {
+            const chunk = tickers.slice(i, i + CONCURRENCY_LIMIT)
+            const chunkPromises = chunk.map(async (ticker) => {
+                try {
+                    const response = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
+                        params: { token, fundamental: true }
+                    })
+                    return response.data.results?.[0]
+                } catch (error: any) {
+                    console.error(`❌ [BRAPI] Erro ao buscar ticker ${ticker}:`, error.message)
+                    return null
+                }
             })
 
-            console.log(`📡 [BRAPI_DEBUG] HTTP Status: ${response.status}`)
-            const results = response.data.results ?? []
-            console.log(`📦 [BRAPI_DEBUG] Results count: ${results.length}`)
-            if (results.length > 0) {
-                console.log(`📄 [BRAPI_DEBUG] First Result Sample:`, JSON.stringify(results[0], null, 2))
+            const chunkResults = await Promise.all(chunkPromises)
+            results.push(...chunkResults.filter(r => r !== null))
+        }
+
+        // Enrich with Fundamentus data
+        const fundAcoes = await fundamentusService.scrapingAcoes()
+        const fundFIIs = await fundamentusService.scrapingFIIs()
+
+        return results.map((res: any) => {
+            const ticker = res.symbol
+            const price = res.regularMarketPrice || 0
+            const mockInfo = MOCK_ATIVOS.find(m => m.ticker === ticker)
+            const fundAcao = fundAcoes.find(a => a.ticker === ticker)
+            const fundFII = fundFIIs.find(f => f.ticker === ticker)
+
+            // Approximation for DY
+            let dyScore = 0
+            if (res.dividendYield != null) {
+                dyScore = res.dividendYield * 100
             }
 
-            // Enrich with Fundamentus data
-            const fundAcoes = await fundamentusService.scrapingAcoes()
-            const fundFIIs = await fundamentusService.scrapingFIIs()
+            const isFii = ticker.endsWith('11')
 
-            return results.map((res: any) => {
-                const ticker = res.symbol
-                const price = res.regularMarketPrice || 0
-                const mockInfo = MOCK_ATIVOS.find(m => m.ticker === ticker)
-                const fundAcao = fundAcoes.find(a => a.ticker === ticker)
-                const fundFII = fundFIIs.find(f => f.ticker === ticker)
+            const baseData = {
+                ticker,
+                nome: res.longName || res.shortName || ticker,
+                preco: price,
+                variacao: res.regularMarketChange || 0,
+                variacaoPercent: res.regularMarketChangePercent || 0,
+                marketCap: res.marketCap,
+                // Metrics
+                pl: isFii ? undefined : (fundAcao ? fundAcao.pl : (res.priceEarnings || mockInfo?.pl || 0)),
+                pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (mockInfo?.pvp || null)),
+                dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || mockInfo?.dy || 0)),
+                roe: isFii ? undefined : (fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : (mockInfo?.roe || 0))),
+                margemLiquida: isFii ? undefined : (fundAcao ? fundAcao.margemLiquida : (res.netMargin ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0))),
+                dyMensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : 0)) : undefined,
+                vacancia: isFii ? (fundFII ? fundFII.vacancia : undefined) : undefined,
+                segmento: isFii ? (fundFII ? fundFII.segmento : 'Outros') : undefined
+            }
 
-                // Approximation for DY
-                let dyScore = 0
-                if (res.dividendYield != null) {
-                    dyScore = res.dividendYield * 100
-                }
+            // Import dynamically to avoid circular dependencies if any
+            const { scoreService } = require('./score.service')
+            const score = mockInfo?.score || scoreService.calcularScore(baseData)
 
-                const isFii = ticker.endsWith('11')
-
-                const baseData = {
-                    ticker,
-                    nome: res.longName || res.shortName || ticker,
-                    preco: price,
-                    variacao: res.regularMarketChange || 0,
-                    variacaoPercent: res.regularMarketChangePercent || 0,
-                    marketCap: res.marketCap,
-                    // Metrics
-                    pl: isFii ? undefined : (fundAcao ? fundAcao.pl : (res.priceEarnings || mockInfo?.pl || 0)),
-                    pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (mockInfo?.pvp || null)),
-                    dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || mockInfo?.dy || 0)),
-                    roe: isFii ? undefined : (fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : (mockInfo?.roe || 0))),
-                    margemLiquida: isFii ? undefined : (fundAcao ? fundAcao.margemLiquida : (res.netMargin ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0))),
-                    dyMensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : 0)) : undefined,
-                    vacancia: isFii ? (fundFII ? fundFII.vacancia : undefined) : undefined,
-                    segmento: isFii ? (fundFII ? fundFII.segmento : 'Outros') : undefined
-                }
-
-                // Import dynamically to avoid circular dependencies if any
-                const { scoreService } = require('./score.service')
-                const score = mockInfo?.score || scoreService.calcularScore(baseData)
-
-                return { ...baseData, score }
-            })
-        } catch (error: any) {
-            console.error('❌ [BRAPI_DEBUG] Erro ao buscar vários ativos:', {
-                message: error.message,
-                status: error.response?.status,
-                data: error.response?.data
-            })
-            return []
-        }
+            return { ...baseData, score }
+        })
     },
 
     async buscarIndices() {
@@ -228,13 +229,13 @@ export const brapiService = {
         if (!token) return defaultIndices
 
         try {
-            // Buscamos IBOV e IFIX em paralelo
-            const { data } = await axios.get(`${BRAPI_BASE}/quote/^BVSP,IFIX.SA`, {
-                params: { token }
-            })
-            const results = data.results ?? []
-            const ibov = results.find((r: any) => r.symbol === '^BVSP')
-            const ifix = results.find((r: any) => r.symbol === 'IFIX.SA')
+            // Buscamos IBOV e IFIX individualmente
+            const [ibovRes, ifixRes] = await Promise.all([
+                axios.get(`${BRAPI_BASE}/quote/^BVSP`, { params: { token } }),
+                axios.get(`${BRAPI_BASE}/quote/IFIX.SA`, { params: { token } })
+            ])
+            const ibov = ibovRes.data.results?.[0]
+            const ifix = ifixRes.data.results?.[0]
 
             return [
                 {
@@ -252,7 +253,7 @@ export const brapiService = {
                 {
                     ticker: 'SELIC',
                     name: 'SELIC',
-                    close: 10.75, // Mantemos fixo ou buscamos via BCB depois
+                    close: 10.75,
                     variation: 0
                 }
             ]
