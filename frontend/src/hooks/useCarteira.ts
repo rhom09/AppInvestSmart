@@ -18,12 +18,12 @@ const EMPTY_CARTEIRA: ResumoCarteira = {
 }
 
 const buildResumo = (itens: ItemCarteira[], tickerData: Record<string, any> = {}): ResumoCarteira => {
-    // Processar cada item com dados de cotação atual
-    const itensProcessados = itens.map(item => {
+    // 1. Processar cada item com dados de cotação atual e nome
+    const itensComPreco = itens.map(item => {
         const cotacao = tickerData[item.ticker]
-        if (!cotacao) return item
 
-        const precoAtual = cotacao.preco || item.precoMedio
+        const nome = cotacao?.nome || item.nome || item.ticker
+        const precoAtual = cotacao?.preco || item.precoMedio
         const totalAtual = precoAtual * item.quantidade
         const totalInvestido = item.precoMedio * item.quantidade
         const resultado = totalAtual - totalInvestido
@@ -31,26 +31,32 @@ const buildResumo = (itens: ItemCarteira[], tickerData: Record<string, any> = {}
 
         return {
             ...item,
+            nome,
             precoAtual,
             totalAtual,
-            totalInvestido, // recalculado por segurança
+            totalInvestido,
             resultado,
             resultadoPercent
         }
     })
 
-    const totalInvestido = itensProcessados.reduce((s, i) => s + i.totalInvestido, 0)
-    const totalAtual = itensProcessados.reduce((s, i) => s + i.totalAtual, 0)
+    const totalInvestido = itensComPreco.reduce((s, i) => s + i.totalInvestido, 0)
+    const totalAtual = itensComPreco.reduce((s, i) => s + i.totalAtual, 0)
 
-    // Calculate Score based on weighted average of individual asset scores (weighted by totalAtual)
+    // 2. Calcular percentual de cada ativo na carteira e score ponderado
     let somaPesos = 0
     let somaScoresPonderados = 0
 
-    itensProcessados.forEach(item => {
+    const itensProcessados = itensComPreco.map(item => {
         const score = tickerData[item.ticker]?.score || 0
         if (score > 0) {
             somaScoresPonderados += score * item.totalAtual
             somaPesos += item.totalAtual
+        }
+
+        return {
+            ...item,
+            percentCarteira: totalAtual > 0 ? (item.totalAtual / totalAtual) * 100 : 0
         }
     })
 
@@ -80,19 +86,31 @@ export const useCarteira = () => {
         setLoading(true)
         try {
             const rows = await getCarteira(userId)
-            const rawItens: ItemCarteira[] = rows.map(row => ({
-                id: row.id ?? crypto.randomUUID(),
-                supabaseId: row.id,
-                ticker: row.ticker,
-                tipo: row.tipo || 'Ação',
-                quantidade: row.quantidade,
-                precoMedio: row.preco_medio,
-                precoAtual: row.preco_medio, // fallback inicial
-                totalInvestido: row.quantidade * row.preco_medio,
-                totalAtual: row.quantidade * row.preco_medio,
-                resultado: 0,
-                resultadoPercent: 0
-            }))
+            const rawItens: ItemCarteira[] = rows.map(row => {
+                // Mapear tipo do banco para o enum do ItemCarteira
+                let tipo: 'ACAO' | 'FII' | 'ETF' | 'RENDA_FIXA' | 'CRIPTO' = 'ACAO'
+                const rawTipo = (row.tipo || '').toUpperCase()
+                if (rawTipo.includes('FII')) tipo = 'FII'
+                else if (rawTipo.includes('ETF')) tipo = 'ETF'
+                else if (rawTipo.includes('CRIP')) tipo = 'CRIPTO'
+                else if (rawTipo.includes('RENDA') || rawTipo.includes('FIXA')) tipo = 'RENDA_FIXA'
+
+                return {
+                    id: row.id ?? crypto.randomUUID(),
+                    supabaseId: row.id,
+                    ticker: row.ticker,
+                    nome: row.ticker, // Nome inicial é o ticker, buildResumo atualizará com Brapi
+                    tipo,
+                    quantidade: row.quantidade,
+                    precoMedio: row.preco_medio,
+                    precoAtual: row.preco_medio,
+                    totalInvestido: row.quantidade * row.preco_medio,
+                    totalAtual: row.quantidade * row.preco_medio,
+                    resultado: 0,
+                    resultadoPercent: 0,
+                    percentCarteira: 0 // Será calculado em buildResumo
+                }
+            })
 
             if (rawItens.length === 0) {
                 setCarteira(EMPTY_CARTEIRA)

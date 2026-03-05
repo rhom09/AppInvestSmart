@@ -12,7 +12,7 @@ router.get('/', async (req: Request, res: Response) => {
         }
 
         const tickersArray = tickersQuery.split(',').map(t => t.trim().toUpperCase()).filter(Boolean)
-        
+
         if (tickersArray.length === 0) {
             return res.status(400).json({ success: false, message: 'Nenhum ticker válido fornecido' })
         }
@@ -28,7 +28,8 @@ router.get('/', async (req: Request, res: Response) => {
                     preco: ativo.preco,
                     variacao: ativo.variacao,
                     variacaoPercent: ativo.variacaoPercent,
-                    score: ativo.score
+                    score: ativo.score,
+                    nome: ativo.nome
                 }
             }
             return acc
