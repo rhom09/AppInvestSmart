@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { cacheService } from './cache.service'
 
-const AWESOME_URL = 'https://economia.awesomeapi.com.br/last'
+const AWESOME_URL = 'https://economia.awesomeapi.com.br/json/last'
 
 export const awesomeService = {
     async buscarDolar() {
@@ -11,7 +11,7 @@ export const awesomeService = {
                 const usd = data.USDBRL
                 return {
                     ticker: 'USD',
-                    name: 'Dolar Comercial',
+                    name: 'Dólar Comercial',
                     close: parseFloat(usd.bid),
                     variation: parseFloat(usd.pctChange)
                 }
@@ -19,11 +19,11 @@ export const awesomeService = {
                 console.error('Erro ao buscar Dólar na AwesomeAPI:', error)
                 return {
                     ticker: 'USD',
-                    name: 'Dolar Comercial',
-                    close: 5.45,
+                    name: 'Dólar Comercial',
+                    close: 5.85,
                     variation: 0
                 }
             }
-        }, 1800) // 30 minutos (evita 429 Error)
+        }, 900) // 15 minutos (900s)
     }
 }
