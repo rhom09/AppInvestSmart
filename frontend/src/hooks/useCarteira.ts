@@ -17,7 +17,12 @@ const EMPTY_CARTEIRA: ResumoCarteira = {
     itens: [],
 }
 
-const buildResumo = (itens: ItemCarteira[], tickerData: Record<string, any> = {}): ResumoCarteira => {
+const buildResumo = (
+    itens: ItemCarteira[],
+    tickerData: Record<string, any> = {},
+    rendimentoMes: number = 0,
+    rendimentoAno: number = 0
+): ResumoCarteira => {
     // 1. Processar cada item com dados de cotação atual e nome
     const itensComPreco = itens.map(item => {
         const cotacao = tickerData[item.ticker]
@@ -67,6 +72,8 @@ const buildResumo = (itens: ItemCarteira[], tickerData: Record<string, any> = {}
         itens: itensProcessados,
         totalInvestido,
         totalAtual,
+        rendimentoMes,
+        rendimentoAno,
         scoreCarteira,
         resultado: totalAtual - totalInvestido,
         resultadoPercent: totalInvestido > 0
@@ -123,7 +130,31 @@ export const useCarteira = () => {
             const { data: quoteRes } = await api.get(`/cotacoes?tickers=${tickersUnicos.join(',')}`)
 
             if (quoteRes.success && quoteRes.data) {
-                setCarteira(buildResumo(rawItens, quoteRes.data))
+                // Calcular rentabilidades (mês e ano) via backend
+                const tickers = rawItens.map(i => i.ticker).join(',')
+
+                // Calculamos os pesos baseados no totalAtual estimado (preços buscados na Brapi)
+                const itensComPrecoInfo = rawItens.map(item => ({
+                    ...item,
+                    totalAtual: (quoteRes.data[item.ticker]?.preco || item.precoMedio) * item.quantidade
+                }))
+                const totalCalculado = itensComPrecoInfo.reduce((acc, i) => acc + i.totalAtual, 0)
+                const weights = itensComPrecoInfo.map(i => totalCalculado > 0 ? (i.totalAtual / totalCalculado).toFixed(4) : "0").join(',')
+
+                try {
+                    const [resMes, resAno] = await Promise.all([
+                        api.get(`/carteira/rentabilidade?tickers=${tickers}&weights=${weights}&periodo=mes`),
+                        api.get(`/carteira/rentabilidade?tickers=${tickers}&weights=${weights}&periodo=ano`)
+                    ])
+
+                    const rendMes = resMes.data?.success ? resMes.data.data.rentabilidade : 0
+                    const rendAno = resAno.data?.success ? resAno.data.data.rentabilidade : 0
+
+                    setCarteira(buildResumo(rawItens, quoteRes.data, rendMes, rendAno))
+                } catch (rentError) {
+                    console.error('Erro ao buscar rentabilidades:', rentError)
+                    setCarteira(buildResumo(rawItens, quoteRes.data))
+                }
                 setLastUpdate(new Date())
             } else {
                 setCarteira(buildResumo(rawItens))
