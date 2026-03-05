@@ -9,7 +9,7 @@ import { useAcoes } from '@/hooks/useAcoes'
 import { useFIIs } from '@/hooks/useFIIs'
 import { useNoticias } from '@/hooks/useNoticias'
 import { HISTORICO_PATRIMONIAL } from '@/data/mockData'
-import { formatMoeda, formatPercent } from '@/utils/formatters'
+import { formatMoeda, formatPercent, getVariacaoColor } from '@/utils/formatters'
 import { useUserStore } from '@/store/user.store'
 import type { Ativo, Noticia } from '@/types'
 
@@ -61,7 +61,7 @@ const DetalhePanel = ({ ativo, onClose }: { ativo: Ativo; onClose: () => void })
                         </div>
                         <div className="p-3 rounded-xl bg-bg-elevated">
                             <p className="text-[11px] text-text-muted mb-1">Variação</p>
-                            <p className={`text-lg font-bold ${ativo.variacaoPercent >= 0 ? 'text-primary' : 'text-danger'}`}>
+                            <p className={`text-lg font-bold ${getVariacaoColor(ativo.variacaoPercent)}`}>
                                 {formatPercent(ativo.variacaoPercent)}
                             </p>
                         </div>
@@ -188,7 +188,7 @@ export const DashboardPage = () => {
                     subvalor={formatPercent(carteira.resultadoPercent)}
                     variacao={carteira.resultadoPercent}
                     icon={<TrendingUp size={18} />}
-                    cor={carteira.resultado >= 0 ? 'green' : 'red'}
+                    cor={carteira.resultado > 0 ? 'green' : carteira.resultado < 0 ? 'red' : 'yellow'}
                 />
                 <StatCard
                     titulo="Rentabilidade Mês"

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { getVariacaoColor } from '@/utils/formatters'
 
 interface StatCardProps {
     titulo: string
@@ -39,8 +40,8 @@ export const StatCard = ({ titulo, valor, subvalor, variacao, icon, cor = 'green
                 <div className="flex items-center gap-2 mt-1">
                     {subvalor && <span className="text-text-secondary text-sm">{subvalor}</span>}
                     {variacao !== undefined && (
-                        <span className={`text-xs font-semibold ${variacao >= 0 ? 'text-primary' : 'text-danger'}`}>
-                            {variacao >= 0 ? '▲' : '▼'} {(Math.abs(variacao ?? 0)).toFixed(2)}%
+                        <span className={`text-xs font-semibold ${getVariacaoColor(variacao)}`}>
+                            {variacao > 0 ? '▲' : variacao < 0 ? '▼' : '•'} {(Math.abs(variacao ?? 0)).toFixed(2)}%
                         </span>
                     )}
                 </div>

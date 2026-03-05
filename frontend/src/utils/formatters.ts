@@ -56,8 +56,19 @@ export const getScoreLabel = (score: number): string => {
     return 'Ruim'
 }
 
-export const getVariacaoColor = (variacao: number): string =>
-    variacao >= 0 ? 'text-primary' : 'text-danger'
+export const getVariacaoColor = (variacao: number | undefined | null): string => {
+    const v = Number(variacao) || 0
+    if (v > 0) return 'text-primary'
+    if (v < 0) return 'text-danger'
+    return 'text-text-muted'
+}
+
+export const getVariacaoBg = (variacao: number | undefined | null): string => {
+    const v = Number(variacao) || 0
+    if (v > 0) return 'bg-primary/10 text-primary'
+    if (v < 0) return 'bg-danger/10 text-danger'
+    return 'bg-surface-border/30 text-text-muted'
+}
 
 // ─── Setores ─────────────────────────────────────────────────────────
 export const SETORES: Record<string, string> = {

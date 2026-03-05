@@ -5,7 +5,7 @@ import { VariacaoBadge } from '@/components/VariacaoBadge'
 import { ScoreBar } from '@/components/ScoreBar'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { ModalAdicionarAtivo } from '@/components/ModalAdicionarAtivo'
-import { formatMoeda, formatPercent } from '@/utils/formatters'
+import { formatMoeda, formatPercent, getVariacaoColor } from '@/utils/formatters'
 import { calcularJurosCompostos } from '@/utils/calculators'
 import { Plus, Trash2, RefreshCw } from 'lucide-react'
 
@@ -59,8 +59,8 @@ export const CarteiraPage = () => {
                 {[
                     { l: 'Total Investido', v: formatMoeda(carteira.totalInvestido), c: 'text-text-primary' },
                     { l: 'Valor Atual', v: formatMoeda(carteira.totalAtual), c: 'text-primary' },
-                    { l: 'Resultado', v: formatMoeda(carteira.resultado), c: carteira.resultado >= 0 ? 'text-primary' : 'text-danger' },
-                    { l: 'Rentab.', v: formatPercent(carteira.resultadoPercent), c: carteira.resultadoPercent >= 0 ? 'text-primary' : 'text-danger' },
+                    { l: 'Resultado', v: formatMoeda(carteira.resultado), c: getVariacaoColor(carteira.resultado) },
+                    { l: 'Rentab.', v: formatPercent(carteira.resultadoPercent), c: getVariacaoColor(carteira.resultadoPercent) },
                 ].map(({ l, v, c }) => (
                     <div key={l} className="card">
                         <p className="text-text-secondary text-xs mb-1">{l}</p>
@@ -95,7 +95,7 @@ export const CarteiraPage = () => {
                                         <td className="px-4 py-3 text-sm text-text-secondary">{formatMoeda(item.precoMedio)}</td>
                                         <td className="px-4 py-3 text-sm text-text-primary font-semibold">{formatMoeda(item.precoAtual)}</td>
                                         <td className="px-4 py-3">
-                                            <p className={`text-sm font-semibold ${item.resultado >= 0 ? 'text-primary' : 'text-danger'}`}>
+                                            <p className={`text-sm font-semibold ${getVariacaoColor(item.resultado)}`}>
                                                 {formatMoeda(item.resultado)}
                                             </p>
                                         </td>
@@ -131,11 +131,11 @@ export const CarteiraPage = () => {
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-text-secondary">Rentab. Mês</span>
-                            <span className="text-primary font-semibold">{formatPercent(carteira.rendimentoMes)}</span>
+                            <span className={`font-semibold ${getVariacaoColor(carteira.rendimentoMes)}`}>{formatPercent(carteira.rendimentoMes)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-text-secondary">Rentab. Ano</span>
-                            <span className="text-primary font-semibold">{formatPercent(carteira.rendimentoAno)}</span>
+                            <span className={`font-semibold ${getVariacaoColor(carteira.rendimentoAno)}`}>{formatPercent(carteira.rendimentoAno)}</span>
                         </div>
                     </div>
                 </div>
