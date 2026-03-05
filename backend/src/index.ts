@@ -5,6 +5,7 @@ import { acoesRoutes } from './routes/acoes.routes'
 import { fiisRoutes } from './routes/fiis.routes'
 import { noticiasRoutes } from './routes/noticias.routes'
 import { mercadoRoutes } from './routes/mercado.routes'
+import { cotacoesRoutes } from './routes/cotacoes.routes'
 import './cron/market-update.cron'
 
 dotenv.config()
@@ -25,6 +26,7 @@ app.use('/api/acoes', acoesRoutes)
 app.use('/api/fiis', fiisRoutes)
 app.use('/api/noticias', noticiasRoutes)
 app.use('/api/mercado', mercadoRoutes)
+app.use('/api/cotacoes', cotacoesRoutes)
 
 import { adminRoutes } from './routes/admin.routes'
 

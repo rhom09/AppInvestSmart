@@ -7,10 +7,10 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { ModalAdicionarAtivo } from '@/components/ModalAdicionarAtivo'
 import { formatMoeda, formatPercent } from '@/utils/formatters'
 import { calcularJurosCompostos } from '@/utils/calculators'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, RefreshCw } from 'lucide-react'
 
 export const CarteiraPage = () => {
-    const { carteira, loading, removerItem } = useCarteira()
+    const { carteira, loading, lastUpdate, refreshPrices, removerItem } = useCarteira()
     const [aporte, setAporte] = useState(500)
     const [taxa, setTaxa] = useState(1.0)
     const [meses, setMeses] = useState(24)
@@ -19,22 +19,39 @@ export const CarteiraPage = () => {
     const projecao = calcularJurosCompostos({ aporteMensal: aporte, taxaMensal: taxa, meses, patrimonioInicial: carteira.totalAtual })
     const projecaoGrafico = projecao.filter((_, i) => i % 3 === 0 || i === projecao.length - 1)
 
-    if (loading) return <LoadingSpinner text="Carregando carteira..." />
+    if (loading && !carteira.itens.length) return <LoadingSpinner text="Carregando carteira..." />
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary">Minha Carteira</h1>
-                    <p className="text-text-secondary text-sm mt-1">Visão consolidada dos seus investimentos</p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-text-secondary text-sm">Visão consolidada dos seus investimentos</p>
+                        {lastUpdate && (
+                            <span className="text-[10px] text-text-muted bg-surface-border/30 px-2 py-0.5 rounded-full">
+                                Atualizado às {lastUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        )}
+                    </div>
                 </div>
-                <button
-                    onClick={() => setModalAberto(true)}
-                    className="flex items-center gap-2 bg-primary text-bg-primary font-semibold py-2 px-4 rounded-xl hover:brightness-110 transition-all text-sm"
-                >
-                    <Plus size={16} />
-                    Adicionar Ativo
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={refreshPrices}
+                        disabled={loading}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-elevated border border-surface-border text-text-primary hover:bg-surface-border/50 transition-all disabled:opacity-50"
+                        title="Atualizar preços"
+                    >
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                    </button>
+                    <button
+                        onClick={() => setModalAberto(true)}
+                        className="flex items-center gap-2 bg-primary text-bg-primary font-semibold py-2 px-4 rounded-xl hover:brightness-110 transition-all text-sm"
+                    >
+                        <Plus size={16} />
+                        Adicionar Ativo
+                    </button>
+                </div>
             </div>
 
             {/* Summary */}
