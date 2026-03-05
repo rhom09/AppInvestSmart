@@ -7,18 +7,22 @@ export const useFIIs = () => {
     const [loading, setLoading] = useState(true)
     const [busca, setBusca] = useState('')
     const [segmento, setSegmento] = useState('')
+    const [page, setPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+    const [total, setTotal] = useState(0)
+    const limit = 12
 
     useEffect(() => {
         const fetch = async () => {
             setLoading(true)
             try {
-                const { data } = await api.get('/acoes')
+                const { data } = await api.get('/fiis', {
+                    params: { page, limit }
+                })
                 if (data.success) {
-                    // Simples filtro por sufixo 11 (característica de FIIs)
-                    const filtered = data.data.filter((a: any) =>
-                        a.ticker?.endsWith('11') || a.type === 'fii'
-                    )
-                    setFiis(filtered)
+                    setFiis(data.data)
+                    setTotal(data.total)
+                    setTotalPages(data.totalPages)
                 }
             } catch (err) {
                 console.error('Erro ao buscar FIIs:', err)
@@ -27,13 +31,26 @@ export const useFIIs = () => {
             }
         }
         fetch()
-    }, [])
+    }, [page])
 
+    // Filtro local apenas para busca pontual na página atual, ou podemos expandir o backend se necessário
+    // Dado que o usuário pediu Cards e Skeleton, a paginação servidor é o foco.
     const fiisFiltered = fiis.filter(f => {
         const matchBusca = !busca || f.ticker.toLowerCase().includes(busca.toLowerCase()) || f.nome.toLowerCase().includes(busca.toLowerCase())
         const matchSeg = !segmento || f.segmento === segmento
         return matchBusca && matchSeg
     })
 
-    return { fiis: fiisFiltered, loading, busca, setBusca, segmento, setSegmento }
+    return {
+        fiis: fiisFiltered,
+        loading,
+        busca,
+        setBusca,
+        segmento,
+        setSegmento,
+        page,
+        setPage,
+        totalPages,
+        total
+    }
 }
