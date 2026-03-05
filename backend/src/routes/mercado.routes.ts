@@ -11,24 +11,22 @@ const router = Router()
  */
 router.get('/indices', async (_req: Request, res: Response) => {
     try {
-        const [indices, ipca, selic, dolar] = await Promise.all([
+        const [indices, ipca, selic, cdi, dolar] = await Promise.all([
             brapiService.buscarIndices(),
             bcbService.buscarIPCA12m(),
-            bcbService.buscarSelic(),
+            bcbService.buscarSelicReal(),
+            bcbService.buscarCDI(),
             awesomeService.buscarDolar()
         ])
-
-        // O CDI no Brasil é historicamente 0.10 abaixo da Selic Meta ou idêntico à Selic Over
-        const cdiValue = Math.max(0, selic - 0.10)
 
         // Mapeamos os índices para o formato final solicitado
         const result = [
             indices.find(i => i.ticker === 'IBOV') || { ticker: 'IBOV', name: 'IBOVESPA', close: 0, variation: 0 },
             indices.find(i => i.ticker === 'IFIX') || { ticker: 'IFIX', name: 'IFIX', close: 0, variation: 0 },
             { ticker: 'SELIC', name: 'SELIC', close: selic, variation: 0 },
-            { ticker: 'CDI', name: 'CDI', close: cdiValue, variation: 0 },
+            { ticker: 'CDI', name: 'CDI', close: cdi, variation: 0 },
             { ticker: 'IPCA', name: 'IPCA (12m)', close: ipca, variation: 0 },
-            dolar // Awesome service já retorna o objeto { ticker: 'USD', name: 'Dólar', close, variation }
+            dolar
         ]
 
         res.json({ success: true, data: result })

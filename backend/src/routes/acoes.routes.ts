@@ -87,14 +87,18 @@ router.get('/:ticker/historico', async (req, res) => {
 // GET /api/acoes/market/indices - índices de mercado
 router.get('/market/indices', async (_req, res) => {
     try {
-        const [indices, ipca, dolar] = await Promise.all([
+        const [indices, ipca, selic, cdi, dolar] = await Promise.all([
             brapiService.buscarIndices(),
             bcbService.buscarIPCA12m(),
+            bcbService.buscarSelicReal(),
+            bcbService.buscarCDI(),
             awesomeService.buscarDolar()
         ])
 
         const completeIndices = [
             ...indices,
+            { ticker: 'SELIC', name: 'SELIC', close: selic, variation: 0 },
+            { ticker: 'CDI', name: 'CDI', close: cdi, variation: 0 },
             { ticker: 'IPCA', name: 'IPCA (12m)', close: ipca, variation: 0 },
             dolar
         ]

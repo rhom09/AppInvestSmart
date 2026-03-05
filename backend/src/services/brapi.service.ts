@@ -260,7 +260,7 @@ export const brapiService = {
             // Buscamos IBOV e IFIX individualmente
             const [ibovRes, ifixRes] = await Promise.all([
                 axios.get(`${BRAPI_BASE}/quote/^BVSP`, { params: { token } }),
-                axios.get(`${BRAPI_BASE}/quote/IFIX.SA`, { params: { token } })
+                axios.get(`${BRAPI_BASE}/quote/IFIX11`, { params: { token } })
             ])
             const ibov = ibovRes.data.results?.[0]
             const ifix = ifixRes.data.results?.[0]
@@ -277,17 +277,11 @@ export const brapiService = {
                     name: 'IFIX',
                     close: ifix?.regularMarketPrice || 3350,
                     variation: ifix?.regularMarketChangePercent || 0
-                },
-                {
-                    ticker: 'SELIC',
-                    name: 'SELIC',
-                    close: 10.75,
-                    variation: 0
                 }
             ]
         } catch (error) {
             console.error('Erro ao buscar índices na Brapi:', error)
-            return defaultIndices
+            return defaultIndices.filter(i => i.ticker !== 'SELIC')
         }
     },
 }
