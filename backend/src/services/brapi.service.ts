@@ -21,6 +21,12 @@ const MOCK_ATIVOS: any[] = [
     { ticker: 'SUZB3', nome: 'Suzano ON', preco: 52.30, variacao: 1.15, variacaoPercent: 2.25, score: 74, pl: 6.8, pvp: 1.6, dy: 4.2, roe: 22.8, margemLiquida: 38.5 },
 ]
 
+export const TICKERS_FIIS = [
+    'MXRF11', 'HGLG11', 'XPML11', 'KNRI11', 'VISC11', 'BCFF11', 'BTLG11', 'HFOF11',
+    'RBRF11', 'GGRC11', 'VILG11', 'BRCO11', 'XPLG11', 'PATL11', 'LVBI11', 'VGIP11',
+    'KNCR11', 'CPTS11', 'RBRP11', 'PVBI11', 'BPFF11', 'HABT11', 'RZTR11', 'SARE11'
+]
+
 export const brapiService = {
     async listarAtivos() {
         return cacheService.getOrSet('brapi_available_stocks', async () => {
@@ -164,7 +170,9 @@ export const brapiService = {
                     dyScore = res.dividendYield * 100
                 }
 
-                return {
+                const isFii = ticker.endsWith('11')
+
+                const baseData = {
                     ticker,
                     nome: res.longName || res.shortName || ticker,
                     preco: price,
@@ -172,13 +180,21 @@ export const brapiService = {
                     variacaoPercent: res.regularMarketChangePercent || 0,
                     marketCap: res.marketCap,
                     // Metrics
-                    pl: fundAcao ? fundAcao.pl : (res.priceEarnings || mockInfo?.pl || 0),
-                    pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (mockInfo?.pvp || 0)),
+                    pl: isFii ? undefined : (fundAcao ? fundAcao.pl : (res.priceEarnings || mockInfo?.pl || 0)),
+                    pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (mockInfo?.pvp || null)),
                     dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || mockInfo?.dy || 0)),
-                    roe: fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : (mockInfo?.roe || 0)),
-                    margemLiquida: fundAcao ? fundAcao.margemLiquida : (res.netMargin ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0)),
-                    score: mockInfo?.score || 0
+                    roe: isFii ? undefined : (fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : (mockInfo?.roe || 0))),
+                    margemLiquida: isFii ? undefined : (fundAcao ? fundAcao.margemLiquida : (res.netMargin ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0))),
+                    dyMensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : 0)) : undefined,
+                    vacancia: isFii ? (fundFII ? fundFII.vacancia : undefined) : undefined,
+                    segmento: isFii ? (fundFII ? fundFII.segmento : 'Outros') : undefined
                 }
+
+                // Import dynamically to avoid circular dependencies if any
+                const { scoreService } = require('./score.service')
+                const score = mockInfo?.score || scoreService.calcularScore(baseData)
+
+                return { ...baseData, score }
             })
         } catch (error) {
             console.error('Erro ao buscar vários ativos:', error)

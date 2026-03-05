@@ -22,6 +22,7 @@ export interface FundamentusFII {
     pvp: number
     liquidez: number
     vacancia: number
+    segmento?: string
 }
 
 const parsePtBrFloat = (val: string): number => {
