@@ -37,6 +37,8 @@ const buildResumo = (
         const dy = cotacao?.dy || 0
         const dividendosMes = (dy / 100 / 12) * totalAtual
 
+        console.log(`[DEBUG] Dividendos ${item.ticker}: DY=${dy}, Preço=${precoAtual}, Qtd=${item.quantidade}, Mensal=R$${dividendosMes.toFixed(2)}`)
+
         return {
             ...item,
             nome,

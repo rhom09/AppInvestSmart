@@ -29,7 +29,8 @@ router.get('/', async (req: Request, res: Response) => {
                     variacao: ativo.variacao,
                     variacaoPercent: ativo.variacaoPercent,
                     score: ativo.score,
-                    nome: ativo.nome
+                    nome: ativo.nome,
+                    dy: ativo.dy
                 }
             }
             return acc
