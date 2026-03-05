@@ -199,7 +199,7 @@ export const DashboardPage = () => {
                 <StatCard
                     titulo="Dividendos Mês"
                     valor={formatMoeda(carteira.dividendosMes)}
-                    descricao="Projetado"
+                    subvalor="estimativa"
                     icon={<DollarSign size={18} />}
                     cor="yellow"
                 />

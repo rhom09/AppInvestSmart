@@ -34,6 +34,9 @@ const buildResumo = (
         const resultado = totalAtual - totalInvestido
         const resultadoPercent = totalInvestido > 0 ? (resultado / totalInvestido) * 100 : 0
 
+        const dy = cotacao?.dy || 0
+        const dividendosMes = (dy / 100 / 12) * totalAtual
+
         return {
             ...item,
             nome,
@@ -41,12 +44,15 @@ const buildResumo = (
             totalAtual,
             totalInvestido,
             resultado,
-            resultadoPercent
+            resultadoPercent,
+            dy,
+            dividendosMes
         }
     })
 
     const totalInvestido = itensComPreco.reduce((s, i) => s + i.totalInvestido, 0)
     const totalAtual = itensComPreco.reduce((s, i) => s + i.totalAtual, 0)
+    const dividendosMes = itensComPreco.reduce((s, i) => s + (i.dividendosMes || 0), 0)
 
     // 2. Calcular percentual de cada ativo na carteira e score ponderado
     let somaPesos = 0
@@ -74,6 +80,7 @@ const buildResumo = (
         totalAtual,
         rendimentoMes,
         rendimentoAno,
+        dividendosMes,
         scoreCarteira,
         resultado: totalAtual - totalInvestido,
         resultadoPercent: totalInvestido > 0

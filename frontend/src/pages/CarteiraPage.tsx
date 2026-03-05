@@ -123,7 +123,10 @@ export const CarteiraPage = () => {
                     <ScoreBar score={carteira.scoreCarteira} size="lg" />
                     <div className="mt-6 space-y-3">
                         <div className="flex justify-between text-sm">
-                            <span className="text-text-secondary">Dividendos / Mês</span>
+                            <div className="flex flex-col">
+                                <span className="text-text-secondary">Dividendos / Mês</span>
+                                <span className="text-[10px] text-text-muted">estimativa</span>
+                            </div>
                             <span className="text-primary font-semibold">{formatMoeda(carteira.dividendosMes)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
