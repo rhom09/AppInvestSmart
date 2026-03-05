@@ -200,55 +200,61 @@ export const brapiService = {
                 const score = mockInfo?.score || scoreService.calcularScore(baseData)
 
                 return { ...baseData, score }
-            })
-        } catch (error) {
-            console.error('Erro ao buscar vários ativos:', error)
-            return []
-        }
-    },
+                return results.map((res: any) => {
+                    // ... (existing mapping logic)
+                })
+            } catch (error: any) {
+                console.error('❌ [BRAPI_DEBUG] Erro ao buscar vários ativos:', {
+                    message: error.message,
+                    status: error.response?.status,
+                    data: error.response?.data
+                })
+                return []
+            }
+        },
 
     async buscarIndices() {
-        const defaultIndices = [
-            { ticker: 'IBOV', name: 'IBOVESPA', close: 128500, variation: 0.5 },
-            { ticker: 'IFIX', name: 'IFIX', close: 3350, variation: 0.1 },
-            { ticker: 'SELIC', name: 'SELIC', close: 10.75, variation: 0 }
-        ]
-
-        const token = process.env.BRAPI_TOKEN
-        if (!token) return defaultIndices
-
-        try {
-            // Buscamos IBOV e IFIX em paralelo
-            const { data } = await axios.get(`${BRAPI_BASE}/quote/^BVSP,IFIX.SA`, {
-                params: { token }
-            })
-            const results = data.results ?? []
-            const ibov = results.find((r: any) => r.symbol === '^BVSP')
-            const ifix = results.find((r: any) => r.symbol === 'IFIX.SA')
-
-            return [
-                {
-                    ticker: 'IBOV',
-                    name: 'IBOVESPA',
-                    close: ibov?.regularMarketPrice || 128500,
-                    variation: ibov?.regularMarketChangePercent || 0
-                },
-                {
-                    ticker: 'IFIX',
-                    name: 'IFIX',
-                    close: ifix?.regularMarketPrice || 3350,
-                    variation: ifix?.regularMarketChangePercent || 0
-                },
-                {
-                    ticker: 'SELIC',
-                    name: 'SELIC',
-                    close: 10.75, // Mantemos fixo ou buscamos via BCB depois
-                    variation: 0
-                }
+            const defaultIndices = [
+                { ticker: 'IBOV', name: 'IBOVESPA', close: 128500, variation: 0.5 },
+                { ticker: 'IFIX', name: 'IFIX', close: 3350, variation: 0.1 },
+                { ticker: 'SELIC', name: 'SELIC', close: 10.75, variation: 0 }
             ]
-        } catch (error) {
-            console.error('Erro ao buscar índices na Brapi:', error)
-            return defaultIndices
-        }
-    },
-}
+
+            const token = process.env.BRAPI_TOKEN
+            if (!token) return defaultIndices
+
+            try {
+                // Buscamos IBOV e IFIX em paralelo
+                const { data } = await axios.get(`${BRAPI_BASE}/quote/^BVSP,IFIX.SA`, {
+                    params: { token }
+                })
+                const results = data.results ?? []
+                const ibov = results.find((r: any) => r.symbol === '^BVSP')
+                const ifix = results.find((r: any) => r.symbol === 'IFIX.SA')
+
+                return [
+                    {
+                        ticker: 'IBOV',
+                        name: 'IBOVESPA',
+                        close: ibov?.regularMarketPrice || 128500,
+                        variation: ibov?.regularMarketChangePercent || 0
+                    },
+                    {
+                        ticker: 'IFIX',
+                        name: 'IFIX',
+                        close: ifix?.regularMarketPrice || 3350,
+                        variation: ifix?.regularMarketChangePercent || 0
+                    },
+                    {
+                        ticker: 'SELIC',
+                        name: 'SELIC',
+                        close: 10.75, // Mantemos fixo ou buscamos via BCB depois
+                        variation: 0
+                    }
+                ]
+            } catch (error) {
+                console.error('Erro ao buscar índices na Brapi:', error)
+                return defaultIndices
+            }
+        },
+    }
