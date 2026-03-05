@@ -62,7 +62,7 @@ const DetalhePanel = ({ ativo, onClose }: { ativo: Ativo; onClose: () => void })
                         <div className="p-3 rounded-xl bg-bg-elevated">
                             <p className="text-[11px] text-text-muted mb-1">Variação</p>
                             <p className={`text-lg font-bold ${ativo.variacaoPercent >= 0 ? 'text-primary' : 'text-danger'}`}>
-                                {ativo.variacaoPercent >= 0 ? '+' : ''}{(ativo.variacaoPercent ?? 0).toFixed(2)}%
+                                {formatPercent(ativo.variacaoPercent)}
                             </p>
                         </div>
                     </div>

@@ -7,8 +7,10 @@ export const formatMoeda = (valor: number): string =>
 export const formatNumero = (valor: number, casas = 2): string =>
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }).format(valor)
 
-export const formatPercent = (valor: number, casas = 2): string =>
-    `${valor >= 0 ? '+' : ''}${formatNumero(valor, casas)}%`
+export const formatPercent = (valor: number | undefined | null, casas = 2): string => {
+    const v = Number(valor) || 0
+    return `${v >= 0 ? '+' : ''}${formatNumero(v, casas)}%`
+}
 
 export const formatMillions = (valor: number): string => {
     const v = valor ?? 0

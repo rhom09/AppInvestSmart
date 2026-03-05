@@ -128,11 +128,11 @@ export const CarteiraPage = () => {
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-text-secondary">Rentab. Mês</span>
-                            <span className="text-primary font-semibold">+{carteira.rendimentoMes}%</span>
+                            <span className="text-primary font-semibold">{formatPercent(carteira.rendimentoMes)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-text-secondary">Rentab. Ano</span>
-                            <span className="text-primary font-semibold">+{carteira.rendimentoAno}%</span>
+                            <span className="text-primary font-semibold">{formatPercent(carteira.rendimentoAno)}</span>
                         </div>
                     </div>
                 </div>

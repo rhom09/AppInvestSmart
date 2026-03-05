@@ -121,7 +121,7 @@ export const TabelaIndicadas = ({ acoes, loading, onSelectAtivo }: Props) => {
                                             <td className="py-3 px-4 text-right">
                                                 <p className="font-semibold text-text-primary">{formatMoeda(ativo.preco)}</p>
                                                 <p className={`text-[11px] font-bold ${ativo.variacaoPercent >= 0 ? 'text-primary' : 'text-danger'}`}>
-                                                    {ativo.variacaoPercent >= 0 ? '+' : ''}{(ativo.variacaoPercent ?? 0).toFixed(2)}%
+                                                    {formatPercent(ativo.variacaoPercent)}
                                                 </p>
                                             </td>
                                             <td className="py-3 px-4 text-right text-text-secondary">{ativo.pl > 0 ? (ativo.pl ?? 0).toFixed(1) : '—'}</td>
