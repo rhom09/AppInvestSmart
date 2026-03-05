@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Ativo } from '@/types'
-import { formatMoeda } from '@/utils/formatters'
+import { formatMoeda, formatPercent } from '@/utils/formatters'
 
 interface Props {
     acoes: Ativo[]

@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
+import { formatPercent } from '@/utils/formatters'
 
 interface VariacaoBadgeProps {
     variacao: number
