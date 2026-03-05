@@ -187,13 +187,23 @@ export const brapiService = {
     },
 
     async buscarIndices() {
-        if (!TOKEN) return [
+        const defaultIndices = [
             { ticker: 'IBOV', name: 'IBOVESPA', close: 128500, variation: 0.5 },
+            { ticker: 'IFIX', name: 'IFIX', close: 3350, variation: 0.1 },
             { ticker: 'SELIC', name: 'SELIC', close: 10.75, variation: 0 }
         ]
+
+        if (!TOKEN) return defaultIndices
+
         try {
-            const { data } = await axios.get(`${BRAPI_BASE}/quote/^BVSP`, { params: { token: TOKEN } })
-            const ibov = data.results?.[0]
+            // Buscamos IBOV e IFIX em paralelo
+            const { data } = await axios.get(`${BRAPI_BASE}/quote/^BVSP,IFIX.SA`, {
+                params: { token: TOKEN }
+            })
+            const results = data.results ?? []
+            const ibov = results.find((r: any) => r.symbol === '^BVSP')
+            const ifix = results.find((r: any) => r.symbol === 'IFIX.SA')
+
             return [
                 {
                     ticker: 'IBOV',
@@ -202,17 +212,21 @@ export const brapiService = {
                     variation: ibov?.regularMarketChangePercent || 0
                 },
                 {
+                    ticker: 'IFIX',
+                    name: 'IFIX',
+                    close: ifix?.regularMarketPrice || 3350,
+                    variation: ifix?.regularMarketChangePercent || 0
+                },
+                {
                     ticker: 'SELIC',
                     name: 'SELIC',
-                    close: 10.75,
+                    close: 10.75, // Mantemos fixo ou buscamos via BCB depois
                     variation: 0
                 }
             ]
-        } catch {
-            return [
-                { ticker: 'IBOV', name: 'IBOVESPA', close: 128500, variation: 0.5 },
-                { ticker: 'SELIC', name: 'SELIC', close: 10.75, variation: 0 }
-            ]
+        } catch (error) {
+            console.error('Erro ao buscar índices na Brapi:', error)
+            return defaultIndices
         }
     },
 }

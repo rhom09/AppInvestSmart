@@ -25,5 +25,20 @@ export const bcbService = {
                 return 4.51 // Fallback IPCA aproximado
             }
         })
+    },
+
+    /**
+     * Busca a Meta Selic atual (SGS 432)
+     */
+    async buscarSelic() {
+        return cacheService.getOrSet('bcb_selic_meta', async () => {
+            try {
+                const { data } = await axios.get(`${BCB_SGS_URL}.432/dados/ultimos/1?formato=json`)
+                return parseFloat(data[0].valor)
+            } catch (error) {
+                console.error('Erro ao buscar Selic na API do BCB:', error)
+                return 10.75 // Fallback
+            }
+        })
     }
 }
