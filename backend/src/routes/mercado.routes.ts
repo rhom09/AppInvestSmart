@@ -14,7 +14,7 @@ router.get('/indices', async (_req: Request, res: Response) => {
         const [indices, ipca, selic, cdi, dolar] = await Promise.all([
             brapiService.buscarIndices(),
             bcbService.buscarIPCA12m(),
-            bcbService.buscarSelicReal(),
+            bcbService.buscarSelic(),
             bcbService.buscarCDI(),
             awesomeService.buscarDolar()
         ])

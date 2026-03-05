@@ -90,7 +90,7 @@ router.get('/market/indices', async (_req, res) => {
         const [indices, ipca, selic, cdi, dolar] = await Promise.all([
             brapiService.buscarIndices(),
             bcbService.buscarIPCA12m(),
-            bcbService.buscarSelicReal(),
+            bcbService.buscarSelic(),
             bcbService.buscarCDI(),
             awesomeService.buscarDolar()
         ])

@@ -43,12 +43,12 @@ export const bcbService = {
     },
 
     /**
-     * Busca a Taxa CDI (SGS 12)
+     * Busca a Taxa CDI Anual (SGS 4389)
      */
     async buscarCDI() {
         return cacheService.getOrSet('bcb_cdi_acumulada', async () => {
             try {
-                const { data } = await axios.get(`${BCB_SGS_URL}.12/dados/ultimos/1?formato=json`)
+                const { data } = await axios.get(`${BCB_SGS_URL}.4389/dados/ultimos/1?formato=json`)
                 return parseFloat(data[0].valor)
             } catch (error) {
                 console.error('Erro ao buscar CDI na API do BCB:', error)

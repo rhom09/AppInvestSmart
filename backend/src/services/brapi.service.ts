@@ -258,9 +258,10 @@ export const brapiService = {
 
         try {
             // Buscamos IBOV e IFIX individualmente
+            // Brapi costuma usar ^BVSP ou IBOV, e IFIX ou IFIX.SA ou IFIX11
             const [ibovRes, ifixRes] = await Promise.all([
-                axios.get(`${BRAPI_BASE}/quote/^BVSP`, { params: { token } }),
-                axios.get(`${BRAPI_BASE}/quote/IFIX11`, { params: { token } })
+                axios.get(`${BRAPI_BASE}/quote/IBOV`, { params: { token } }).catch(() => axios.get(`${BRAPI_BASE}/quote/^BVSP`, { params: { token } })),
+                axios.get(`${BRAPI_BASE}/quote/IFIX`, { params: { token } }).catch(() => axios.get(`${BRAPI_BASE}/quote/IFIX11`, { params: { token } }))
             ])
             const ibov = ibovRes.data.results?.[0]
             const ifix = ifixRes.data.results?.[0]
