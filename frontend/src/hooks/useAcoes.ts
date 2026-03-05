@@ -3,10 +3,15 @@ import type { Ativo } from '@/types'
 import { api } from '@/services/api'
 import { ACOES_MOCK } from '@/data/mockData'
 
-export const useAcoes = () => {
+export const useAcoes = (initialPage = 1, initialLimit = 20) => {
     const [acoes, setAcoes] = useState<Ativo[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [page, setPage] = useState(initialPage)
+    const [limit, setLimit] = useState(initialLimit)
+    const [total, setTotal] = useState(0)
+    const [totalPages, setTotalPages] = useState(0)
+
     const [busca, setBusca] = useState('')
     const [setor, setSetor] = useState('')
     const [ordenarPor, setOrdenarPor] = useState<keyof Ativo>('score')
@@ -15,14 +20,13 @@ export const useAcoes = () => {
     const fetchAcoes = useCallback(async () => {
         setLoading(true)
         try {
-            const { data } = await api.get('/acoes')
+            const { data } = await api.get('/acoes', {
+                params: { page, limit }
+            })
             if (data.success && Array.isArray(data.data)) {
-                const normalized = data.data.map((a: any) =>
-                    typeof a === 'string'
-                        ? { ticker: a, nome: a, preco: 0, variacao: 0, variacaoPercent: 0 }
-                        : a
-                )
-                setAcoes(normalized)
+                setAcoes(data.data)
+                setTotal(data.total || data.data.length)
+                setTotalPages(data.totalPages || 1)
             }
             setError(null)
         } catch {
@@ -30,7 +34,7 @@ export const useAcoes = () => {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [page, limit])
 
     useEffect(() => { fetchAcoes() }, [fetchAcoes])
 
@@ -46,5 +50,24 @@ export const useAcoes = () => {
             return ordem === 'desc' ? vb - va : va - vb
         })
 
-    return { acoes: acoesFiltradas, loading, error, busca, setBusca, setor, setSetor, ordenarPor, setOrdenarPor, ordem, setOrdem, refetch: fetchAcoes }
+    return {
+        acoes: acoesFiltradas,
+        loading,
+        error,
+        busca,
+        setBusca,
+        setor,
+        setSetor,
+        ordenarPor,
+        setOrdenarPor,
+        ordem,
+        setOrdem,
+        page,
+        setPage,
+        limit,
+        setLimit,
+        total,
+        totalPages,
+        refetch: fetchAcoes
+    }
 }

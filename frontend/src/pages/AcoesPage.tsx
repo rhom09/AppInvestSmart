@@ -8,8 +8,19 @@ import { formatMoeda, formatMillions, SETORES } from '@/utils/formatters'
 import type { Ativo } from '@/types'
 
 export const AcoesPage = () => {
-    const { acoes, loading, busca, setBusca, setor, setSetor } = useAcoes()
+    const {
+        acoes, loading, busca, setBusca, setor, setSetor,
+        page, setPage, total, totalPages, limit
+    } = useAcoes()
     const [selected, setSelected] = useState<Ativo | null>(null)
+
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    const startIdx = (page - 1) * limit + 1
+    const endIdx = Math.min(page * limit, total)
 
     return (
         <div className="space-y-6">
@@ -17,7 +28,9 @@ export const AcoesPage = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary">Listagem de Ações</h1>
-                    <p className="text-text-secondary text-sm mt-1">{acoes.length} ativos encontrados</p>
+                    <p className="text-text-secondary text-sm mt-1">
+                        Exibindo {startIdx}–{endIdx} de {total} ativos
+                    </p>
                 </div>
             </div>
 
@@ -78,6 +91,45 @@ export const AcoesPage = () => {
                                 </table>
                             )}
                         </div>
+
+                        {/* Pagination Controls */}
+                        {!loading && totalPages > 1 && (
+                            <div className="flex items-center justify-between px-6 py-4 bg-bg-elevated/30 border-t border-surface-border">
+                                <div className="text-xs text-text-muted">
+                                    Página <span className="text-text-primary font-semibold">{page}</span> de {totalPages}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handlePageChange(page - 1)}
+                                        disabled={page === 1}
+                                        className="btn-secondary h-8 px-3 text-xs disabled:opacity-50"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <div className="flex gap-1">
+                                        {[...Array(totalPages)].map((_, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => handlePageChange(i + 1)}
+                                                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${page === i + 1
+                                                        ? 'bg-primary text-white'
+                                                        : 'hover:bg-primary/10 text-text-secondary'
+                                                    }`}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={() => handlePageChange(page + 1)}
+                                        disabled={page === totalPages}
+                                        className="btn-secondary h-8 px-3 text-xs disabled:opacity-50"
+                                    >
+                                        Próxima
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

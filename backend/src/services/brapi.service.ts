@@ -138,6 +138,54 @@ export const brapiService = {
         })
     },
 
+    async buscarVariosAtivos(tickers: string[]) {
+        if (!TOKEN) return MOCK_ATIVOS.filter(a => tickers.includes(a.ticker))
+        try {
+            const tickersStr = tickers.join(',')
+            const { data } = await axios.get(`${BRAPI_BASE}/quote/${tickersStr}`, {
+                params: { token: TOKEN, fundamental: true }
+            })
+            const results = data.results ?? []
+
+            // Enrich with Fundamentus data
+            const fundAcoes = await fundamentusService.scrapingAcoes()
+            const fundFIIs = await fundamentusService.scrapingFIIs()
+
+            return results.map((res: any) => {
+                const ticker = res.symbol
+                const price = res.regularMarketPrice || 0
+                const mockInfo = MOCK_ATIVOS.find(m => m.ticker === ticker)
+                const fundAcao = fundAcoes.find(a => a.ticker === ticker)
+                const fundFII = fundFIIs.find(f => f.ticker === ticker)
+
+                // Approximation for DY
+                let dyScore = 0
+                if (res.dividendYield != null) {
+                    dyScore = res.dividendYield * 100
+                }
+
+                return {
+                    ticker,
+                    nome: res.longName || res.shortName || ticker,
+                    preco: price,
+                    variacao: res.regularMarketChange || 0,
+                    variacaoPercent: res.regularMarketChangePercent || 0,
+                    marketCap: res.marketCap,
+                    // Metrics
+                    pl: fundAcao ? fundAcao.pl : (res.priceEarnings || mockInfo?.pl || 0),
+                    pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (mockInfo?.pvp || 0)),
+                    dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || mockInfo?.dy || 0)),
+                    roe: fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : (mockInfo?.roe || 0)),
+                    margemLiquida: fundAcao ? fundAcao.margemLiquida : (res.netMargin ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0)),
+                    score: mockInfo?.score || 0
+                }
+            })
+        } catch (error) {
+            console.error('Erro ao buscar vários ativos:', error)
+            return []
+        }
+    },
+
     async buscarIndices() {
         if (!TOKEN) return [
             { ticker: 'IBOV', name: 'IBOVESPA', close: 128500, variation: 0.5 },

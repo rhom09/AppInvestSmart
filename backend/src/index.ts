@@ -16,7 +16,7 @@ app.use(express.json())
 
 // Health check
 app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' })
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.1.0-paginated' })
 })
 
 // Routes

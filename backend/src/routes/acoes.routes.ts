@@ -6,12 +6,53 @@ import { awesomeService } from '../services/awesome.service'
 
 const router = Router()
 
-// GET /api/acoes - listar todas as ações
-router.get('/', async (_req: Request, res: Response) => {
+const TICKERS_ACOES = [
+    'WEGE3', 'ITUB4', 'BBAS3', 'PETR4', 'VALE3', 'ABEV3', 'RENT3', 'SUZB3', 'EGIE3', 'ITSA4',
+    'MGLU3', 'BBDC4', 'PRIO3', 'VIVT3', 'RADL3', 'EMBR3', 'TOTS3', 'JBSS3', 'CSAN3', 'EQTL3',
+    'CCRO3', 'BRFS3', 'SBSP3', 'AZZA3', 'UGPA3', 'RAIL3', 'MULT3', 'TAEE11', 'CPFE3', 'CPLE6',
+    'ENGI11', 'SAPR4', 'BEEF3', 'MRVE3', 'DIRR3', 'TIMS3', 'CMIN3', 'BPAC11', 'PETZ3', 'RDOR3'
+]
+
+function chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = []
+    for (let i = 0; i < array.length; i += size) {
+        chunks.push(array.slice(i, i + size))
+    }
+    return chunks
+}
+
+// GET /api/acoes - listar todas as ações (paginado)
+router.get('/', async (req: Request, res: Response) => {
     try {
-        const acoes = await brapiService.listarAtivos()
-        res.json({ success: true, data: acoes, total: acoes.length })
+        const page = parseInt(req.query.page as string) || 1
+        const limit = parseInt(req.query.limit as string) || 20
+
+        const total = TICKERS_ACOES.length
+        const totalPages = Math.ceil(total / limit)
+        const offset = (page - 1) * limit
+        const pageTickers = TICKERS_ACOES.slice(offset, offset + limit)
+
+        if (pageTickers.length === 0) {
+            return res.json({ success: true, data: [], total, page, totalPages })
+        }
+
+        // Batch fetching - Reduzido para 1 pois o plano Free do Brapi limita a 1 ticker por request
+        const chunks = chunkArray(pageTickers, 1)
+        const batchResults = await Promise.all(
+            chunks.map(chunk => brapiService.buscarVariosAtivos(chunk))
+        )
+
+        const acoes = batchResults.flat()
+
+        res.json({
+            success: true,
+            data: acoes,
+            total,
+            page,
+            totalPages
+        })
     } catch (error) {
+        console.error('Erro ao buscar ações paginadas:', error)
         res.status(500).json({ success: false, message: 'Erro ao buscar ações' })
     }
 })
