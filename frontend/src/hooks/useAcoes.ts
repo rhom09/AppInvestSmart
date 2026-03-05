@@ -38,6 +38,11 @@ export const useAcoes = (initialPage = 1, initialLimit = 20) => {
 
     useEffect(() => { fetchAcoes() }, [fetchAcoes])
 
+    // Reset para primeira página ao filtrar ou buscar
+    useEffect(() => {
+        setPage(1)
+    }, [busca, setor])
+
     const acoesFiltradas = acoes
         .filter(a => {
             const matchBusca = !busca || a.ticker.toLowerCase().includes(busca.toLowerCase()) || a.nome.toLowerCase().includes(busca.toLowerCase())

@@ -33,6 +33,11 @@ export const useFIIs = () => {
         fetch()
     }, [page])
 
+    // Reset para primeira página ao filtrar ou buscar
+    useEffect(() => {
+        setPage(1)
+    }, [busca, segmento])
+
     // Filtro local apenas para busca pontual na página atual, ou podemos expandir o backend se necessário
     // Dado que o usuário pediu Cards e Skeleton, a paginação servidor é o foco.
     const fiisFiltered = fiis.filter(f => {

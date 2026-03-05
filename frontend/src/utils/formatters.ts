@@ -71,6 +71,7 @@ export const SETORES: Record<string, string> = {
     CONSTRUCAO: 'Construção',
     TRANSPORTE: 'Transporte',
     INDUSTRIA: 'Indústria',
+    OUTROS: 'Outros',
 }
 
 export const SEGMENTOS_FIIS: Record<string, string> = {
@@ -82,4 +83,5 @@ export const SEGMENTOS_FIIS: Record<string, string> = {
     RECEBIVEL: 'Recebíveis',
     HOTEL: 'Hotel',
     EDUCACIONAL: 'Educacional',
+    OUTROS: 'Outros',
 }

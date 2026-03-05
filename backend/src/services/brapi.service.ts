@@ -26,6 +26,28 @@ export const TICKERS_FIIS = [
     'KNCR11', 'CPTS11', 'RBRP11', 'PVBI11', 'BPFF11', 'HABT11', 'RZTR11', 'SARE11'
 ]
 
+const MAP_SETORES: Record<string, string> = {
+    'WEGE3': 'INDUSTRIA', 'ITUB4': 'FINANCEIRO', 'BBAS3': 'FINANCEIRO', 'PETR4': 'PETROLEO',
+    'VALE3': 'MINERACAO', 'ABEV3': 'AGRO', 'RENT3': 'TRANSPORTE', 'SUZB3': 'INDUSTRIA',
+    'EGIE3': 'ENERGIA', 'ITSA4': 'FINANCEIRO', 'MGLU3': 'VAREJO', 'BBDC4': 'FINANCEIRO',
+    'PRIO3': 'PETROLEO', 'VIVT3': 'TELECOMUNICACOES', 'RADL3': 'VAREJO', 'EMBR3': 'INDUSTRIA',
+    'TOTS3': 'TECNOLOGIA', 'JBSS3': 'AGRO', 'CSAN3': 'ENERGIA', 'EQTL3': 'ENERGIA',
+    'CCRO3': 'TRANSPORTE', 'BRFS3': 'AGRO', 'SBSP3': 'ENERGIA', 'AZZA3': 'VAREJO',
+    'UGPA3': 'PETROLEO', 'RAIL3': 'TRANSPORTE', 'MULT3': 'CONSTRUCAO', 'TAEE11': 'ENERGIA',
+    'CPFE3': 'ENERGIA', 'CPLE6': 'ENERGIA', 'ENGI11': 'ENERGIA', 'SAPR4': 'ENERGIA',
+    'BEEF3': 'AGRO', 'MRVE3': 'CONSTRUCAO', 'DIRR3': 'CONSTRUCAO', 'TIMS3': 'TELECOMUNICACOES',
+    'CMIN3': 'MINERACAO', 'BPAC11': 'FINANCEIRO', 'PETZ3': 'VAREJO', 'RDOR3': 'SAUDE'
+}
+
+const MAP_SEGMENTOS: Record<string, string> = {
+    'MXRF11': 'RECEBIVEL', 'HGLG11': 'LOGISTICA', 'XPML11': 'SHOPPING', 'KNRI11': 'HIBRIDO',
+    'VISC11': 'SHOPPING', 'BCFF11': 'HIBRIDO', 'BTLG11': 'LOGISTICA', 'HFOF11': 'HIBRIDO',
+    'RBRF11': 'HIBRIDO', 'GGRC11': 'LOGISTICA', 'VILG11': 'LOGISTICA', 'BRCO11': 'LOGISTICA',
+    'XPLG11': 'LOGISTICA', 'PATL11': 'LOGISTICA', 'LVBI11': 'LOGISTICA', 'VGIP11': 'RECEBIVEL',
+    'KNCR11': 'RECEBIVEL', 'CPTS11': 'RECEBIVEL', 'RBRP11': 'CORPORATIVO', 'PVBI11': 'CORPORATIVO',
+    'BPFF11': 'HIBRIDO', 'HABT11': 'RECEBIVEL', 'RZTR11': 'HIBRIDO', 'SARE11': 'CORPORATIVO'
+}
+
 export const brapiService = {
     async listarAtivos() {
         return cacheService.getOrSet('brapi_available_stocks', async () => {
@@ -54,7 +76,8 @@ export const brapiService = {
                         preco: mock?.preco || 0,
                         variacao: mock?.variacao || 0,
                         variacaoPercent: mock?.variacaoPercent || 0,
-                        // Use Fundamentus data if available, fallback to mock, then 0
+                        setor: MAP_SETORES[s] || 'OUTROS',
+                        segmento: MAP_SEGMENTOS[s] || 'OUTROS',
                         score: mock?.score || 0,
                         pl: fAcao ? fAcao.pl : (mock?.pl || 0),
                         pvp: fAcao ? fAcao.pvp : (fFII ? fFII.pvp : (mock?.pvp || 0)),
@@ -107,6 +130,8 @@ export const brapiService = {
                     return {
                         ticker: res.symbol,
                         ...res,
+                        setor: MAP_SETORES[res.symbol] || 'OUTROS',
+                        segmento: MAP_SEGMENTOS[res.symbol] || (fundFII ? fundFII.segmento : 'OUTROS'),
                         pl: fundAcao ? fundAcao.pl : (res.priceEarnings != null ? res.priceEarnings : (mockInfo?.pl || 0)),
                         pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : ((price > 0 && res.regularMarketPreviousClose && res.earningsPerShare)
                             ? (price / (res.regularMarketPreviousClose / res.priceEarnings))
@@ -191,6 +216,8 @@ export const brapiService = {
             }
 
             const isFii = ticker.endsWith('11')
+            const setor = !isFii ? (MAP_SETORES[ticker] || 'OUTROS') : undefined
+            const segmento = isFii ? (MAP_SEGMENTOS[ticker] || fundFII?.segmento || 'OUTROS') : undefined
 
             const baseData = {
                 ticker,
@@ -199,6 +226,8 @@ export const brapiService = {
                 variacao: res.regularMarketChange || 0,
                 variacaoPercent: res.regularMarketChangePercent || 0,
                 marketCap: res.marketCap,
+                setor,
+                segmento,
                 // Metrics
                 pl: isFii ? undefined : (fundAcao ? fundAcao.pl : (res.priceEarnings || mockInfo?.pl || 0)),
                 pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (mockInfo?.pvp || null)),
@@ -207,7 +236,6 @@ export const brapiService = {
                 margemLiquida: isFii ? undefined : (fundAcao ? fundAcao.margemLiquida : (res.netMargin ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0))),
                 dyMensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : 0)) : undefined,
                 vacancia: isFii ? (fundFII ? fundFII.vacancia : undefined) : undefined,
-                segmento: isFii ? (fundFII ? fundFII.segmento : 'Outros') : undefined
             }
 
             // Import dynamically to avoid circular dependencies if any
