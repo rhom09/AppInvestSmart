@@ -6,7 +6,6 @@ import { fundamentusService } from './fundamentus.service'
 dotenv.config()
 
 const BRAPI_BASE = 'https://brapi.dev/api'
-const TOKEN = process.env.BRAPI_TOKEN
 
 // Mock data quando BRAPI não está disponível
 const MOCK_ATIVOS: any[] = [
@@ -30,12 +29,13 @@ export const TICKERS_FIIS = [
 export const brapiService = {
     async listarAtivos() {
         return cacheService.getOrSet('brapi_available_stocks', async () => {
-            if (!TOKEN) {
+            const token = process.env.BRAPI_TOKEN
+            if (!token) {
                 console.warn('⚠️  BRAPI_TOKEN não configurado, usando mock')
                 return MOCK_ATIVOS
             }
             try {
-                const { data } = await axios.get(`${BRAPI_BASE}/available`, { params: { token: TOKEN } })
+                const { data } = await axios.get(`${BRAPI_BASE}/available`, { params: { token } })
                 const stocks = data.stocks?.slice(0, 80) ?? []
 
                 // Get Fundamentus data for enrichment
@@ -71,10 +71,11 @@ export const brapiService = {
 
     async buscarAtivo(ticker: string) {
         return cacheService.getOrSet(`brapi_quote_${ticker}`, async () => {
-            if (!TOKEN) return MOCK_ATIVOS.find(a => a.ticker === ticker)
+            const token = process.env.BRAPI_TOKEN
+            if (!token) return MOCK_ATIVOS.find(a => a.ticker === ticker)
             try {
                 const { data } = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
-                    params: { token: TOKEN, fundamental: true, dividends: true }
+                    params: { token, fundamental: true, dividends: true }
                 })
                 const result = data.results?.[0]
                 if (!result) return null
@@ -132,10 +133,11 @@ export const brapiService = {
 
     async buscarHistorico(ticker: string, periodo = '1mo') {
         return cacheService.getOrSet(`brapi_history_${ticker}_${periodo}`, async () => {
-            if (!TOKEN) return []
+            const token = process.env.BRAPI_TOKEN
+            if (!token) return []
             try {
                 const { data } = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
-                    params: { token: TOKEN, range: periodo, interval: '1d', history: true }
+                    params: { token, range: periodo, interval: '1d', history: true }
                 })
                 return data.results?.[0]?.historicalDataPrice ?? []
             } catch {
@@ -145,11 +147,12 @@ export const brapiService = {
     },
 
     async buscarVariosAtivos(tickers: string[]) {
-        if (!TOKEN) return MOCK_ATIVOS.filter(a => tickers.includes(a.ticker))
+        const token = process.env.BRAPI_TOKEN
+        if (!token) return MOCK_ATIVOS.filter(a => tickers.includes(a.ticker))
         try {
             const tickersStr = tickers.join(',')
             const { data } = await axios.get(`${BRAPI_BASE}/quote/${tickersStr}`, {
-                params: { token: TOKEN, fundamental: true }
+                params: { token, fundamental: true }
             })
             const results = data.results ?? []
 
@@ -209,12 +212,13 @@ export const brapiService = {
             { ticker: 'SELIC', name: 'SELIC', close: 10.75, variation: 0 }
         ]
 
-        if (!TOKEN) return defaultIndices
+        const token = process.env.BRAPI_TOKEN
+        if (!token) return defaultIndices
 
         try {
             // Buscamos IBOV e IFIX em paralelo
             const { data } = await axios.get(`${BRAPI_BASE}/quote/^BVSP,IFIX.SA`, {
-                params: { token: TOKEN }
+                params: { token }
             })
             const results = data.results ?? []
             const ibov = results.find((r: any) => r.symbol === '^BVSP')
