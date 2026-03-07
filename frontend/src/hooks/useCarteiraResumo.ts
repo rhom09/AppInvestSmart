@@ -51,14 +51,12 @@ export const useCarteiraResumo = () => {
             let totalInvestido = 0
             let totalAtual = 0
             let somaDividendosEstimados = 0
-            let somaScorePonderado = 0
 
             const itens: ItemCarteira[] = ativosRow.map(ativo => {
                 const quoteInfo = quotes[ativo.ticker]
                 const precoAtual = quoteInfo?.preco || ativo.preco_medio
                 const posicaoInvestida = ativo.quantidade * ativo.preco_medio
                 const posicaoAtual = ativo.quantidade * precoAtual
-                const score = quoteInfo?.score || 0
 
                 totalInvestido += posicaoInvestida
                 totalAtual += posicaoAtual
@@ -82,14 +80,12 @@ export const useCarteiraResumo = () => {
                     resultado: posicaoAtual - posicaoInvestida,
                     resultadoPercent: posicaoInvestida > 0 ? ((posicaoAtual - posicaoInvestida) / posicaoInvestida) * 100 : 0,
                     percentCarteira: 0,
-                    dy,
-                    score
+                    dy
                 }
             })
 
             itens.forEach(item => {
                 item.percentCarteira = totalAtual > 0 ? (item.totalAtual / totalAtual) * 100 : 0
-                somaScorePonderado += ((item.score || 0) * (item.percentCarteira / 100))
             })
 
             const resultado = totalAtual - totalInvestido
@@ -102,7 +98,6 @@ export const useCarteiraResumo = () => {
                 resultado,
                 resultadoPercent,
                 dividendosMes: somaDividendosEstimados,
-                scoreCarteira: Math.round(somaScorePonderado),
                 itens
             }))
 

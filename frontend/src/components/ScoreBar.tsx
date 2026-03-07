@@ -16,7 +16,7 @@ export const ScoreBar = ({ score, showLabel = true, size = 'md', animated = true
             {showLabel && (
                 <div className="flex justify-between items-center mb-1">
                     <span className="text-xs text-text-secondary">Score</span>
-                    <span className={`text-sm font-bold ${getScoreColor(score)}`}>{score > 0 ? score : '—'}</span>
+                    <span className={`text-sm font-bold ${getScoreColor(score)}`}>{score}</span>
                 </div>
             )}
             <div className={`w-full bg-surface-border rounded-full overflow-hidden ${heights[size]}`}>
