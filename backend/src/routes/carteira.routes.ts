@@ -177,9 +177,15 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
                 console.log(`   - [${ticker}] Histórico recebido: ${history?.length || 0} pontos`)
 
                 if (history && history.length > 0) {
-                    const pPrimeiro = history[0].close || history[0].open
-                    const pUltimo = history[history.length - 1].close || history[history.length - 1].open
-                    console.log(`   - [${ticker}] P_Inicio(0): ${pPrimeiro}, P_Fim(last): ${pUltimo}`)
+                    const first = history[0]
+                    const last = history[history.length - 1]
+                    const pPrimeiro = first.close || first.open
+                    const pUltimo = last.close || last.open
+                    const dPrimeiro = new Date(first.date * 1000).toISOString().split('T')[0]
+                    const dUltimo = new Date(last.date * 1000).toISOString().split('T')[0]
+
+                    console.log(`   - [${ticker}] P_Inicio(0) em ${dPrimeiro}: ${pPrimeiro}`)
+                    console.log(`   - [${ticker}] P_Fim(last) em ${dUltimo}: ${pUltimo}`)
 
                     const precoInicio = pPrimeiro
                     if (precoInicio > 0) {
