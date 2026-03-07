@@ -99,6 +99,7 @@ export interface ItemCarteira {
     resultadoPercent: number
     percentCarteira: number
     dy?: number
+    score?: number
 }
 
 export interface ResumoCarteira {

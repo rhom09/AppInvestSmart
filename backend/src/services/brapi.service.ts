@@ -175,7 +175,7 @@ export const brapiService = {
         const token = process.env.BRAPI_TOKEN
         if (!token) return MOCK_ATIVOS.filter(a => tickers.includes(a.ticker))
 
-        console.log(`🔍 [BRAPI] Buscando ${tickers.length} ativos individualmente (limite Brapi Free)`)
+        console.log(`🔍 [BRAPI] Buscando ${tickers.length} ativos com módulos fundamentalistas`)
 
         const results: any[] = []
         const CONCURRENCY_LIMIT = 5
@@ -184,10 +184,26 @@ export const brapiService = {
             const chunk = tickers.slice(i, i + CONCURRENCY_LIMIT)
             const chunkPromises = chunk.map(async (ticker) => {
                 try {
+                    // Usando módulos extras conforme sugerido para garantir dados fundamentalistas
                     const response = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
-                        params: { token, fundamental: true }
+                        params: {
+                            token,
+                            fundamental: true,
+                            modules: 'summaryProfile,defaultKeyStatistics,financialData'
+                        }
                     })
-                    return response.data.results?.[0]
+                    const res = response.data.results?.[0]
+                    if (res) {
+                        console.log(`✅ [BRAPI] Dados recebidos para ${ticker}:`, {
+                            p: res.regularMarketPrice,
+                            pe: res.priceEarnings,
+                            pb: res.priceToBook,
+                            dy: res.dividendYield,
+                            roe: res.returnOnEquity,
+                            margin: res.netMargin
+                        })
+                    }
+                    return res
                 } catch (error: any) {
                     console.error(`❌ [BRAPI] Erro ao buscar ticker ${ticker}:`, error.message)
                     return null
@@ -199,8 +215,10 @@ export const brapiService = {
         }
 
         // Enrich with Fundamentus data
+        console.log('🌐 [SCRAPING] Iniciando enriquecimento via Fundamentus...')
         const fundAcoes = await fundamentusService.scrapingAcoes()
         const fundFIIs = await fundamentusService.scrapingFIIs()
+        console.log(`🌐 [SCRAPING] Encontrados ${fundAcoes.length} ações e ${fundFIIs.length} FIIs`)
 
         return results.map((res: any) => {
             const ticker = res.symbol
@@ -213,12 +231,20 @@ export const brapiService = {
             let dyScore = 0
             if (res.dividendYield != null) {
                 dyScore = res.dividendYield * 100
+            } else if (res.dividendsData?.cashDividends) {
+                // Fallback: soma dividendos do último ano
+                const oneYearAgo = new Date()
+                oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+                const recentDivs = res.dividendsData.cashDividends.filter((d: any) => new Date(d.paymentDate) >= oneYearAgo)
+                const totalDiv = recentDivs.reduce((acc: number, d: any) => acc + (d.rate || 0), 0)
+                if (price > 0) dyScore = (totalDiv / price) * 100
             }
 
             const isFii = ticker.endsWith('11')
-            const setor = !isFii ? (MAP_SETORES[ticker] || 'OUTROS') : undefined
+            const setor = !isFii ? (MAP_SETORES[ticker] || res.sector || 'OUTROS') : undefined
             const segmento = isFii ? (MAP_SEGMENTOS[ticker] || fundFII?.segmento || 'OUTROS') : undefined
 
+            // Prioridade: Fundamentus -> Brapi (modules) -> Mock
             const baseData = {
                 ticker,
                 nome: res.longName || res.shortName || ticker,
@@ -230,7 +256,7 @@ export const brapiService = {
                 segmento,
                 // Metrics
                 pl: isFii ? undefined : (fundAcao ? fundAcao.pl : (res.priceEarnings || mockInfo?.pl || 0)),
-                pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (mockInfo?.pvp || null)),
+                pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (res.priceToBook || mockInfo?.pvp || 0)),
                 dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || mockInfo?.dy || 0)),
                 roe: isFii ? undefined : (fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : (mockInfo?.roe || 0))),
                 margemLiquida: isFii ? undefined : (fundAcao ? fundAcao.margemLiquida : (res.netMargin ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0))),
@@ -238,9 +264,9 @@ export const brapiService = {
                 vacancia: isFii ? (fundFII ? fundFII.vacancia : undefined) : undefined,
             }
 
-            // Import dynamically to avoid circular dependencies if any
+            // Import dynamically to avoid circular dependencies
             const { scoreService } = require('./score.service')
-            const score = mockInfo?.score || scoreService.calcularScore(baseData)
+            const score = scoreService.calcularScore(baseData)
 
             return { ...baseData, score }
         })
