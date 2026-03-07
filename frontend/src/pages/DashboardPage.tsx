@@ -10,6 +10,7 @@ import { useFIIs } from '@/hooks/useFIIs'
 import { useNoticias } from '@/hooks/useNoticias'
 import { api } from '@/services/api'
 import { formatMoeda, formatPercent, getVariacaoColor } from '@/utils/formatters'
+import { InfoTooltip } from '@/components/InfoTooltip'
 import { useUserStore } from '@/store/user.store'
 import type { Ativo } from '@/types'
 
@@ -68,7 +69,10 @@ const DetalhePanel = ({ ativo, onClose }: { ativo: Ativo; onClose: () => void })
                     {/* Score Badge */}
                     <div className="flex items-center justify-between p-4 rounded-2xl bg-bg-elevated border border-surface-border">
                         <div>
-                            <p className="text-xs text-text-muted mb-1">Score InvestSmart</p>
+                            <div className="flex items-center gap-1.5 mb-1">
+                                <p className="text-xs text-text-muted">Score InvestSmart</p>
+                                <InfoTooltip text="Pontuação baseada em fundamentos e saúde financeira" />
+                            </div>
                             <p className="text-3xl font-black" style={{ color: cor }}>{ativo.score}</p>
                             <p className="text-sm font-semibold" style={{ color: cor }}>{getScoreLabel(ativo.score)}</p>
                         </div>
@@ -96,15 +100,18 @@ const DetalhePanel = ({ ativo, onClose }: { ativo: Ativo; onClose: () => void })
                         <p className="text-xs text-text-muted uppercase tracking-wider mb-3">Indicadores</p>
                         <div className="grid grid-cols-2 gap-2">
                             {[
-                                { label: 'P/L', value: ativo.pl > 0 ? (ativo.pl ?? 0).toFixed(1) : '—' },
-                                { label: 'P/VP', value: ativo.pvp > 0 ? (ativo.pvp ?? 0).toFixed(2) : '—' },
-                                { label: 'DY', value: `${(ativo.dy ?? 0).toFixed(1)}%` },
-                                { label: 'ROE', value: ativo.roe > 0 ? `${(ativo.roe ?? 0).toFixed(1)}%` : '—' },
-                                { label: 'Margem Liq.', value: ativo.margemLiquida > 0 ? `${(ativo.margemLiquida ?? 0).toFixed(1)}%` : '—' },
-                                { label: 'Setor', value: ativo.setor },
-                            ].map(({ label, value }) => (
+                                { label: 'P/L', value: ativo.pl > 0 ? (ativo.pl ?? 0).toFixed(1) : '—', tip: 'Indica o quanto o mercado paga pelos lucros' },
+                                { label: 'P/VP', value: ativo.pvp > 0 ? (ativo.pvp ?? 0).toFixed(2) : '—', tip: 'Relação entre preço e valor patrimonial' },
+                                { label: 'DY', value: `${(ativo.dy ?? 0).toFixed(1)}%`, tip: 'Rendimento em dividendos nos últimos 12m' },
+                                { label: 'ROE', value: ativo.roe > 0 ? `${(ativo.roe ?? 0).toFixed(1)}%` : '—', tip: 'Retorno sobre o patrimônio líquido' },
+                                { label: 'Margem Liq.', value: ativo.margemLiquida > 0 ? `${(ativo.margemLiquida ?? 0).toFixed(1)}%` : '—', tip: 'Percentual de lucro sobre a receita' },
+                                { label: 'Setor', value: ativo.setor, tip: 'Setor de atuação da empresa' },
+                            ].map(({ label, value, tip }) => (
                                 <div key={label} className="p-3 rounded-xl bg-bg-elevated">
-                                    <p className="text-[10px] text-text-muted">{label}</p>
+                                    <div className="flex items-center gap-1">
+                                        <p className="text-[10px] text-text-muted">{label}</p>
+                                        <InfoTooltip text={tip} />
+                                    </div>
                                     <p className="text-sm font-semibold text-text-primary mt-0.5">{value}</p>
                                 </div>
                             ))}
@@ -139,11 +146,17 @@ const FIICard = ({ fii }: { fii: any }) => {
             </div>
             <div className="flex justify-between text-xs">
                 <div>
-                    <p className="text-text-muted">DY 12m</p>
+                    <div className="flex items-center gap-1">
+                        <p className="text-text-muted">DY 12m</p>
+                        <InfoTooltip text="Rendimento em dividendos nos últimos 12 meses" />
+                    </div>
                     <p className="font-semibold text-primary">{(fii.dy ?? 0).toFixed(1)}%</p>
                 </div>
                 <div>
-                    <p className="text-text-muted">P/VP</p>
+                    <div className="flex items-center gap-1">
+                        <p className="text-text-muted">P/VP</p>
+                        <InfoTooltip text="Preço sobre o valor patrimonial da cota" />
+                    </div>
                     <p className="font-semibold text-text-primary">{(fii.pvp ?? 0).toFixed(2)}</p>
                 </div>
                 <div>
@@ -251,9 +264,17 @@ export const DashboardPage = () => {
                                 titulo="Rentabilidade Mês"
                                 valor={formatPercent(carteira.rendimentoMes)}
                                 icon={<TrendingUp size={18} />}
+                                info="Variação média dos seus ativos no mercado nos últimos 30 dias"
                                 cor="blue"
                             />
                         )}
+                        <StatCard
+                            titulo="Rentabilidade Ano"
+                            valor={formatPercent(carteira.rendimentoAno || 0)}
+                            icon={<TrendingUp size={18} />}
+                            info="Variação média dos seus ativos no mercado nos últimos 12 meses. Não representa o seu lucro pessoal — para isso, veja a Rentabilidade Total"
+                            cor="blue"
+                        />
                         <StatCard
                             titulo="Dividendos Mês"
                             valor={formatMoeda(carteira.dividendosMes)}

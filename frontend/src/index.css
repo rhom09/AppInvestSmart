@@ -1,61 +1,89 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  *, *::before, *::after { box-sizing: border-box; }
-  
-  html { scroll-behavior: smooth; }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
 
   body {
     @apply bg-bg-primary text-text-primary font-sans antialiased;
     min-height: 100vh;
   }
 
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-bg-primary; }
-  ::-webkit-scrollbar-thumb { @apply bg-surface-muted rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-primary; }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-bg-primary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-muted rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary;
+  }
 }
 
 @layer components {
   .card {
     @apply bg-bg-card border border-surface-border rounded-2xl p-6 transition-all;
   }
+
   .card-elevated {
     @apply bg-bg-elevated border border-surface-border rounded-2xl p-6;
   }
+
   .btn-primary {
-    @apply bg-primary hover:bg-primary-hover text-bg-primary font-semibold
-           px-5 py-2.5 rounded-xl transition-all duration-200 active:scale-95
-           focus:outline-none focus:ring-2 focus:ring-primary/40;
+    @apply bg-primary hover:bg-primary-hover text-bg-primary font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/40;
   }
+
   .btn-secondary {
-    @apply bg-surface-border hover:bg-surface-muted text-text-primary font-semibold
-           px-5 py-2.5 rounded-xl transition-all duration-200 active:scale-95;
+    @apply bg-surface-border hover:bg-surface-muted text-text-primary font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 active:scale-95;
   }
+
   .btn-ghost {
-    @apply hover:bg-surface-border text-text-secondary hover:text-text-primary
-           px-4 py-2 rounded-xl transition-all duration-200;
+    @apply hover:bg-surface-border text-text-secondary hover:text-text-primary px-4 py-2 rounded-xl transition-all duration-200;
   }
+
   .input {
-    @apply bg-bg-elevated border border-surface-border text-text-primary
-           placeholder:text-text-muted rounded-xl px-4 py-2.5 w-full
-           focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30
-           transition-all duration-200;
+    @apply bg-bg-elevated border border-surface-border text-text-primary placeholder:text-text-muted rounded-xl px-4 py-2.5 w-full focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all duration-200;
   }
-  .badge-green  { @apply bg-primary/15 text-primary text-xs font-semibold px-2.5 py-1 rounded-full; }
-  .badge-red    { @apply bg-danger/15 text-danger  text-xs font-semibold px-2.5 py-1 rounded-full; }
-  .badge-yellow { @apply bg-warning/15 text-warning text-xs font-semibold px-2.5 py-1 rounded-full; }
-  .badge-blue   { @apply bg-secondary/15 text-secondary text-xs font-semibold px-2.5 py-1 rounded-full; }
+
+  .badge-green {
+    @apply bg-primary/15 text-primary text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-red {
+    @apply bg-danger/15 text-danger text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-yellow {
+    @apply bg-warning/15 text-warning text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-blue {
+    @apply bg-secondary/15 text-secondary text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
 
   .nav-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-text-secondary
-           hover:bg-surface-border hover:text-text-primary transition-all duration-200
-           font-medium text-sm;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-text-secondary hover:bg-surface-border hover:text-text-primary transition-all duration-200 font-medium text-sm;
   }
+
   .nav-link.active {
     @apply bg-primary/10 text-primary;
   }
@@ -68,10 +96,36 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
   .glow-green {
     box-shadow: 0 0 20px rgba(0, 232, 143, 0.2);
   }
+
   .glow-blue {
     box-shadow: 0 0 20px rgba(0, 184, 255, 0.2);
+  }
+
+  /* Info Tooltip */
+  .info-tooltip-container {
+    @apply relative inline-flex items-center ml-1.5 align-middle;
+  }
+
+  .info-tooltip-icon {
+    @apply w-3.5 h-3.5 rounded-full border border-[#5a6080] text-[#5a6080] flex items-center justify-center cursor-pointer text-[9px] font-bold transition-all duration-200 hover:border-text-primary hover:text-text-primary;
+  }
+
+  .info-tooltip-box {
+    font-family: 'DM Sans', sans-serif;
+    @apply absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1e2438] text-[#e8eaf2] text-[12px] border border-[#2a3050] rounded-lg shadow-xl w-[220px] pointer-events-none opacity-0 invisible transition-all duration-300 ease-out translate-y-2 z-[100] leading-relaxed;
+  }
+
+  .info-tooltip-container:hover .info-tooltip-box {
+    @apply opacity-100 invisible visible translate-y-0;
+  }
+
+  /* Tooltip Arrow */
+  .info-tooltip-box::after {
+    content: '';
+    @apply absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#1e2438];
   }
 }
