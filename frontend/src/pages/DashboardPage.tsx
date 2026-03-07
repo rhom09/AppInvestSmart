@@ -239,7 +239,7 @@ export const DashboardPage = () => {
                             cor="green"
                         />
                         <StatCard
-                            titulo="Resultado Total"
+                            titulo="Rentabilidade Total"
                             valor={formatPercent(carteira.resultadoPercent)}
                             subvalor="desde a compra"
                             variacao={carteira.resultadoPercent}
