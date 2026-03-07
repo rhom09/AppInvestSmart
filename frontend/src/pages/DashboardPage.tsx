@@ -251,9 +251,17 @@ export const DashboardPage = () => {
                                 titulo="Rentabilidade Mês"
                                 valor={formatPercent(carteira.rendimentoMes)}
                                 icon={<TrendingUp size={18} />}
+                                info="Variação média dos seus ativos no mercado nos últimos 30 dias"
                                 cor="blue"
                             />
                         )}
+                        <StatCard
+                            titulo="Rentabilidade Ano"
+                            valor={formatPercent(carteira.rendimentoAno || 0)}
+                            icon={<TrendingUp size={18} />}
+                            info="Variação média dos seus ativos no mercado nos últimos 12 meses. Não representa o seu lucro pessoal — para isso, veja a Rentabilidade Total"
+                            cor="blue"
+                        />
                         <StatCard
                             titulo="Dividendos Mês"
                             valor={formatMoeda(carteira.dividendosMes)}
