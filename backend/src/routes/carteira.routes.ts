@@ -169,6 +169,7 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
             const quote = currentQuotes.find(q => q.ticker === ticker)
             const precoAtual = quote?.preco || 0
 
+            log(`   - [${ticker}] Quote Object: ${JSON.stringify(quote)}`)
             log(`   - [${ticker}] Preço Atual: ${precoAtual}, Qtd: ${qtd}`)
 
             if (precoAtual === 0) {
