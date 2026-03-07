@@ -166,8 +166,8 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
         for (let i = 0; i < tickerList.length; i++) {
             const ticker = tickerList[i]
             const qtd = quantityList[i]
-            const quote = currentQuotes.find(q => q.symbol === ticker)
-            const precoAtual = quote?.regularMarketPrice || 0
+            const quote = currentQuotes.find(q => q.ticker === ticker)
+            const precoAtual = quote?.preco || 0
 
             log(`   - [${ticker}] Preço Atual: ${precoAtual}, Qtd: ${qtd}`)
 
