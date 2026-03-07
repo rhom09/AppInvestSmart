@@ -1,24 +1,48 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AreaChart, Area, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { StatCard } from '@/components/StatCard'
 import { SpotlightAcao } from '@/components/SpotlightAcao'
 import { TabelaIndicadas } from '@/components/TabelaIndicadas'
-import { Wallet, TrendingUp, Star, DollarSign, X, ExternalLink, Radio } from 'lucide-react'
+import { Wallet, TrendingUp, Star, DollarSign, X, ExternalLink, Radio, Layout } from 'lucide-react'
 import { useCarteira } from '@/hooks/useCarteira'
 import { useAcoes } from '@/hooks/useAcoes'
 import { useFIIs } from '@/hooks/useFIIs'
 import { useNoticias } from '@/hooks/useNoticias'
-import { HISTORICO_PATRIMONIAL } from '@/data/mockData'
+import { api } from '@/services/api'
 import { formatMoeda, formatPercent, getVariacaoColor } from '@/utils/formatters'
 import { useUserStore } from '@/store/user.store'
-import type { Ativo, Noticia } from '@/types'
+import type { Ativo } from '@/types'
 
 const COLORS = ['#00e88f', '#00b8ff', '#f0a500', '#ff4d6d', '#a78bfa']
 
 const formatTooltip = (value: any) => [formatMoeda(Number(value) || 0), 'Patrimônio']
 
+// ─── Componentes Auxiliares ──────────────────────────────────
+const ChartSkeleton = () => (
+    <div className="animate-pulse space-y-4">
+        <div className="flex justify-between items-center mb-4">
+            <div className="h-5 bg-surface-border rounded w-40" />
+            <div className="h-8 bg-surface-border rounded w-48" />
+        </div>
+        <div className="h-[220px] bg-surface-border/50 rounded-2xl w-full" />
+    </div>
+)
+
+const EmptyChartState = () => (
+    <div className="h-[220px] flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-surface-border rounded-2xl bg-bg-elevated/30">
+        <div className="w-12 h-12 rounded-full bg-surface-border/30 flex items-center justify-center mb-3 text-text-muted">
+            <Layout size={24} />
+        </div>
+        <h3 className="text-text-primary font-bold text-sm">Sem evolução patrimonial</h3>
+        <p className="text-text-muted text-xs mt-1 max-w-[200px]">
+            Adicione ativos à sua carteira para ver a evolução patrimonial.
+        </p>
+    </div>
+)
+
 // ─── Painel lateral de detalhes ─────────────────────────────
 const DetalhePanel = ({ ativo, onClose }: { ativo: Ativo; onClose: () => void }) => {
+    // ... rest of DetalhePanel ...
     const getScoreCor = (s: number) => s >= 80 ? '#00e88f' : s >= 65 ? '#00b8ff' : s >= 50 ? '#f5c842' : '#ff4d6d'
     const getScoreLabel = (s: number) => s >= 80 ? 'Excelente' : s >= 65 ? 'Bom' : s >= 50 ? 'Neutro' : 'Evitar'
     const cor = getScoreCor(ativo.score)
@@ -143,6 +167,28 @@ export const DashboardPage = () => {
     const { noticias, loading: loadingNoticias } = useNoticias()
 
     const [selectedAtivo, setSelectedAtivo] = useState<Ativo | null>(null)
+    const [evolucao, setEvolucao] = useState<any[]>([])
+    const [loadingEvolucao, setLoadingEvolucao] = useState(true)
+    const [periodo, setPeriodo] = useState('1mo')
+
+    useEffect(() => {
+        const fetchEvolucao = async () => {
+            if (!usuario?.id) return
+            setLoadingEvolucao(true)
+            try {
+                const { data: res } = await api.get(`/carteira/evolucao?userId=${usuario.id}&periodo=${periodo}`)
+                if (res.success) {
+                    setEvolucao(res.data)
+                }
+            } catch (error) {
+                console.error('Erro ao buscar evolução patrimonial:', error)
+            } finally {
+                setLoadingEvolucao(false)
+            }
+        }
+
+        fetchEvolucao()
+    }, [usuario?.id, periodo])
 
     const composicao = carteira.itens.map((item, i) => ({
         name: item.ticker,
@@ -214,24 +260,64 @@ export const DashboardPage = () => {
 
                 {/* Evolução Patrimonial */}
                 <div className="xl:col-span-2 card">
-                    <h2 className="text-text-primary font-semibold mb-4">Evolução Patrimonial</h2>
-                    <ResponsiveContainer width="100%" height={220}>
-                        <AreaChart data={HISTORICO_PATRIMONIAL} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                            <defs>
-                                <linearGradient id="gradGreen" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#00e88f" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#00e88f" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <XAxis dataKey="mes" tick={{ fill: '#52607a', fontSize: 11 }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fill: '#52607a', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#0e1117', border: '1px solid #1e2535', borderRadius: '12px', color: '#e8eaf0' }}
-                                formatter={formatTooltip}
-                            />
-                            <Area type="monotone" dataKey="valor" stroke="#00e88f" strokeWidth={2} fill="url(#gradGreen)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <h2 className="text-text-primary font-semibold">Evolução Patrimonial</h2>
+                        <div className="flex items-center bg-bg-elevated p-1 rounded-xl border border-surface-border">
+                            {[
+                                { id: '1mo', label: '1M' },
+                                { id: '3mo', label: '3M' },
+                                { id: '6mo', label: '6M' },
+                                { id: '1y', label: '1A' },
+                            ].map((p) => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => setPeriodo(p.id)}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${periodo === p.id
+                                        ? 'bg-bg-card text-primary shadow-sm border border-surface-border'
+                                        : 'text-text-muted hover:text-text-primary'
+                                        }`}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {loadingEvolucao ? (
+                        <ChartSkeleton />
+                    ) : evolucao.length === 0 ? (
+                        <EmptyChartState />
+                    ) : (
+                        <ResponsiveContainer width="100%" height={220}>
+                            <AreaChart data={evolucao} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                                <defs>
+                                    <linearGradient id="gradGreen" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#00e88f" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#00e88f" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <XAxis
+                                    dataKey="label"
+                                    tick={{ fill: '#52607a', fontSize: 11 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    minTickGap={30}
+                                />
+                                <YAxis
+                                    tick={{ fill: '#52607a', fontSize: 11 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tickFormatter={v => formatMoeda(v).replace('R$', '').trim()}
+                                    width={60}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#0e1117', border: '1px solid #1e2535', borderRadius: '12px', color: '#e8eaf0' }}
+                                    formatter={formatTooltip}
+                                />
+                                <Area type="monotone" dataKey="patrimonio" stroke="#00e88f" strokeWidth={2} fill="url(#gradGreen)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </div>
 
