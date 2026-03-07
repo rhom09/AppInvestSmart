@@ -227,9 +227,9 @@ export const DashboardPage = () => {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {loadingCarteira ? (
-                    Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)
+                    Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
                 ) : (
                     <>
                         <StatCard
@@ -239,7 +239,7 @@ export const DashboardPage = () => {
                             cor="green"
                         />
                         <StatCard
-                            titulo="Rentabilidade Total"
+                            titulo="Resultado Total"
                             valor={formatPercent(carteira.resultadoPercent)}
                             subvalor="desde a compra"
                             variacao={carteira.resultadoPercent}
@@ -250,14 +250,6 @@ export const DashboardPage = () => {
                             <StatCard
                                 titulo="Rentabilidade Mês"
                                 valor={formatPercent(carteira.rendimentoMes)}
-                                icon={<TrendingUp size={18} />}
-                                cor="blue"
-                            />
-                        )}
-                        {loadingPeriodo ? <CardSkeleton /> : (
-                            <StatCard
-                                titulo="Rentabilidade Ano"
-                                valor={formatPercent(carteira.rendimentoAno)}
                                 icon={<TrendingUp size={18} />}
                                 cor="blue"
                             />
