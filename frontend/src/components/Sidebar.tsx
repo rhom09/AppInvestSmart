@@ -31,7 +31,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 />
             )}
 
-            <aside className={`fixed left-0 top-0 h-full w-64 bg-bg-card border-r border-surface-border z-50 flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <aside className={`fixed left-0 top-0 h-full w-64 bg-bg-card border-r border-surface-border z-50 flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} hidden md:flex`}>
                 {/* Logo */}
                 <div className="px-6 py-5 border-b border-surface-border">
                     <div className="flex items-center gap-2">
