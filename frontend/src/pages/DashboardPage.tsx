@@ -129,13 +129,13 @@ const FIICard = ({ fii }: { fii: any }) => {
     const getScoreCor = (s: number) => s >= 80 ? '#00e88f' : s >= 65 ? '#00b8ff' : s >= 50 ? '#f5c842' : '#ff4d6d'
     const cor = getScoreCor(fii.score)
     return (
-        <div className="card hover:border-primary/30 border border-surface-border cursor-pointer transition-all duration-200 hover:-translate-y-0.5">
-            <div className="flex items-start justify-between mb-3">
-                <div>
+        <div className="card hover:border-primary/30 border border-surface-border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 overflow-hidden">
+            <div className="flex items-start justify-between mb-3 min-w-0">
+                <div className="min-w-0 flex-1">
                     <p className="text-sm font-black text-text-primary">{fii.ticker}</p>
-                    <p className="text-[11px] text-text-muted truncate">{fii.nome}</p>
+                    <p className="text-[11px] text-text-muted truncate" title={fii.nome}>{fii.nome}</p>
                 </div>
-                <span className="text-xs font-bold" style={{ color: cor }}>{fii.score}</span>
+                <span className="text-xs font-bold shrink-0 ml-2" style={{ color: cor }}>{fii.score}</span>
             </div>
             <div className="flex justify-between text-xs">
                 <div>
