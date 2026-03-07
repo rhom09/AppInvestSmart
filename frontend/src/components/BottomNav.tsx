@@ -79,10 +79,14 @@ export const BottomNav = () => {
                                         `flex flex-col items-center gap-2 text-center transition-colors ${isActive ? 'text-[#00e88f]' : 'text-text-secondary'}`
                                     }
                                 >
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-surface-border/20 ${isActive ? 'bg-[#00e88f]/10 text-[#00e88f]' : ''}`}>
-                                        <Icon size={24} />
-                                    </div>
-                                    <span className="text-[11px] font-semibold leading-tight">{label}</span>
+                                    {({ isActive }) => (
+                                        <>
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-surface-border/20 ${isActive ? 'bg-[#00e88f]/10 text-[#00e88f]' : ''}`}>
+                                                <Icon size={24} />
+                                            </div>
+                                            <span className="text-[11px] font-semibold leading-tight">{label}</span>
+                                        </>
+                                    )}
                                 </NavLink>
                             ))}
                         </div>
