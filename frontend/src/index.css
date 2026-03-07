@@ -120,7 +120,7 @@
   }
 
   .info-tooltip-container:hover .info-tooltip-box {
-    @apply opacity-100 invisible visible translate-y-0;
+    @apply opacity-100 visible translate-y-0;
   }
 
   .info-tooltip-box::after {

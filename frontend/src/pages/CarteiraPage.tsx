@@ -8,7 +8,8 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { ModalAdicionarAtivo } from '@/components/ModalAdicionarAtivo'
 import { formatMoeda, formatPercent, getVariacaoColor } from '@/utils/formatters'
 import { calcularJurosCompostos } from '@/utils/calculators'
-import { Plus, Trash2, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Wallet, TrendingUp, DollarSign } from 'lucide-react'
+import { InfoTooltip } from '@/components/InfoTooltip'
 
 export const CarteiraPage = () => {
     const { resumo: carteira, loading, refresh: refreshPrices, removerItem, loadingPeriodo } = useCarteiraResumo()
@@ -53,7 +54,7 @@ export const CarteiraPage = () => {
                 <StatCard
                     titulo="Patrimônio Total"
                     valor={formatMoeda(carteira.totalAtual)}
-                    icon={<Plus size={18} className="rotate-45" />}
+                    icon={<Wallet size={18} />}
                     cor="green"
                 />
                 <StatCard
@@ -61,6 +62,7 @@ export const CarteiraPage = () => {
                     valor={formatPercent(carteira.resultadoPercent)}
                     subvalor="desde a compra"
                     variacao={carteira.resultadoPercent}
+                    icon={<TrendingUp size={18} />}
                     cor={carteira.resultadoPercent >= 0 ? 'green' : 'red'}
                 />
                 {loadingPeriodo ? (
@@ -74,6 +76,8 @@ export const CarteiraPage = () => {
                     <StatCard
                         titulo="Rentabilidade Mês"
                         valor={formatPercent(carteira.rendimentoMes)}
+                        icon={<TrendingUp size={18} />}
+                        info="Variação média dos seus ativos no mercado nos últimos 30 dias"
                         cor="blue"
                     />
                 )}
@@ -81,6 +85,7 @@ export const CarteiraPage = () => {
                     titulo="Rendimento Estimado"
                     valor={formatMoeda(carteira.dividendosMes)}
                     subvalor="estimativa mensal"
+                    icon={<DollarSign size={18} />}
                     cor="yellow"
                 />
             </div>
@@ -135,7 +140,10 @@ export const CarteiraPage = () => {
                 </div>
 
                 <div className="card">
-                    <h2 className="font-semibold text-text-primary mb-4">Score da Carteira</h2>
+                    <div className="flex items-center gap-2 mb-4">
+                        <h2 className="font-semibold text-text-primary">Score da Carteira</h2>
+                        <InfoTooltip text="Média ponderada dos scores individuais dos seus ativos, baseada em indicadores fundamentalistas como P/L, DY e ROE" />
+                    </div>
                     <ScoreBar score={carteira.scoreCarteira} size="lg" />
                     <div className="mt-6 space-y-3">
                         <div className="flex justify-between text-sm">
@@ -146,11 +154,17 @@ export const CarteiraPage = () => {
                             <span className="text-primary font-semibold">{formatMoeda(carteira.dividendosMes)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-text-secondary">Rentab. Mês</span>
+                            <div className="flex items-center gap-1">
+                                <span className="text-text-secondary">Rentab. Mês</span>
+                                <InfoTooltip text="Variação média dos seus ativos no mercado nos últimos 30 dias" />
+                            </div>
                             <span className={`font-semibold ${getVariacaoColor(carteira.rendimentoMes)}`}>{formatPercent(carteira.rendimentoMes)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-text-secondary">Rentab. Ano</span>
+                            <div className="flex items-center gap-1">
+                                <span className="text-text-secondary">Rentab. Ano</span>
+                                <InfoTooltip text="Variação média dos seus ativos no mercado nos últimos 12 meses. Não representa o seu lucro pessoal — para isso, veja a Rentabilidade Total" />
+                            </div>
                             <span className={`font-semibold ${getVariacaoColor(carteira.rendimentoAno)}`}>{formatPercent(carteira.rendimentoAno)}</span>
                         </div>
                     </div>
