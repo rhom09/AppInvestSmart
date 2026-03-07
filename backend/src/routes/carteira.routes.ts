@@ -163,27 +163,42 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
             const quote = currentQuotes.find(q => q.symbol === ticker)
             const precoAtual = quote?.regularMarketPrice || 0
 
-            if (precoAtual === 0) continue
+            console.log(`   - [${ticker}] Preço Atual: ${precoAtual}, Qtd: ${qtd}`)
+
+            if (precoAtual === 0) {
+                console.warn(`   ⚠️ [${ticker}] Preço atual zero, pulando...`)
+                continue
+            }
 
             const valorPosicao = precoAtual * qtd
 
             try {
                 const history = await brapiService.buscarHistorico(ticker, brapiPeriod)
+                console.log(`   - [${ticker}] Histórico recebido: ${history?.length || 0} pontos`)
+
                 if (history && history.length > 0) {
-                    const precoInicio = history[0].close || history[0].open
+                    const pPrimeiro = history[0].close || history[0].open
+                    const pUltimo = history[history.length - 1].close || history[history.length - 1].open
+                    console.log(`   - [${ticker}] P_Inicio(0): ${pPrimeiro}, P_Fim(last): ${pUltimo}`)
+
+                    const precoInicio = pPrimeiro
                     if (precoInicio > 0) {
                         const variacao = ((precoAtual - precoInicio) / precoInicio) * 100
+                        console.log(`   - [${ticker}] Variação: ${variacao.toFixed(2)}%`)
                         rentabilidadeAcumulada += variacao * valorPosicao
                         pesoTotalValido += valorPosicao
                     }
+                } else {
+                    console.warn(`   ⚠️ [${ticker}] Histórico vazio para ${ticker}`)
                 }
             } catch (err) {
-                console.warn(`⚠️ [RENT-PERIODO] Erro histórico ${ticker}:`, (err as any).message)
+                console.error(`   ❌ [${ticker}] Erro histórico:`, (err as any).message)
             }
             await sleep(200) // Delay para evitar bloqueio Brapi
         }
 
         const rentabilidadeFinal = pesoTotalValido > 0 ? (rentabilidadeAcumulada / pesoTotalValido) : 0
+        console.log(`🎯 [RENT-PERIODO] Resultado Final: ${rentabilidadeFinal}% (Peso Total: ${pesoTotalValido})`)
         const result = { rentabilidade: rentabilidadeFinal }
 
         // 4. Salvar Cache
