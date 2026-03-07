@@ -4,9 +4,9 @@ import { LayoutDashboard, TrendingUp, Building2, Briefcase, Plus, BarChart2, Loc
 
 const BOTTOM_ITEMS = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/carteira', label: 'Carteira', icon: Briefcase },
     { to: '/acoes', label: 'Ações', icon: TrendingUp },
     { to: '/fiis', label: 'FIIs', icon: Building2 },
-    { to: '/carteira', label: 'Carteira', icon: Briefcase },
 ]
 
 const DRAWER_ITEMS = [
