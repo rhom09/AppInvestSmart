@@ -126,7 +126,13 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
         const periodKey = `rent_${periodo}`
         const brapiPeriod = periodo === 'ano' ? '1y' : '1mo'
 
-        console.log(`📊 [RENT-PERIODO] Iniciando para usuário ${userId} (${periodo})`)
+        const debugLogs: string[] = []
+        const log = (msg: string) => {
+            console.log(msg)
+            if (userId && (userId as string).includes('debug')) debugLogs.push(msg)
+        }
+
+        log(`📊 [RENT-PERIODO] Iniciando para usuário ${userId} (${periodo})`)
 
         // 1. Verificar Cache (6 horas)
         try {
@@ -140,13 +146,13 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
             if (cacheEntry) {
                 const lastUpdated = new Date(cacheEntry.updated_at)
                 const diffHours = (new Date().getTime() - lastUpdated.getTime()) / (1000 * 60 * 60)
-                if (diffHours < 6) {
-                    console.log(`✅ [RENT-PERIODO] Cache atingido (${diffHours.toFixed(1)}h)`)
+                if (diffHours < 6 && !(userId as string).includes('debug')) {
+                    log(`✅ [RENT-PERIODO] Cache atingido (${diffHours.toFixed(1)}h)`)
                     return res.json({ success: true, data: cacheEntry.payload_json })
                 }
             }
         } catch (e) {
-            console.warn('⚠️ [RENT-PERIODO] Erro cache:', (e as any).message)
+            log(`⚠️ [RENT-PERIODO] Erro cache: ${(e as any).message}`)
         }
 
         // 2. Buscar cotações atuais (Bulk)
@@ -163,10 +169,10 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
             const quote = currentQuotes.find(q => q.symbol === ticker)
             const precoAtual = quote?.regularMarketPrice || 0
 
-            console.log(`   - [${ticker}] Preço Atual: ${precoAtual}, Qtd: ${qtd}`)
+            log(`   - [${ticker}] Preço Atual: ${precoAtual}, Qtd: ${qtd}`)
 
             if (precoAtual === 0) {
-                console.warn(`   ⚠️ [${ticker}] Preço atual zero, pulando...`)
+                log(`   ⚠️ [${ticker}] Preço atual zero, pulando...`)
                 continue
             }
 
@@ -174,7 +180,7 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
 
             try {
                 const history = await brapiService.buscarHistorico(ticker, brapiPeriod)
-                console.log(`   - [${ticker}] Histórico recebido: ${history?.length || 0} pontos`)
+                log(`   - [${ticker}] Histórico recebido: ${history?.length || 0} pontos`)
 
                 if (history && history.length > 0) {
                     const first = history[0]
@@ -184,40 +190,46 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
                     const dPrimeiro = new Date(first.date * 1000).toISOString().split('T')[0]
                     const dUltimo = new Date(last.date * 1000).toISOString().split('T')[0]
 
-                    console.log(`   - [${ticker}] P_Inicio(0) em ${dPrimeiro}: ${pPrimeiro}`)
-                    console.log(`   - [${ticker}] P_Fim(last) em ${dUltimo}: ${pUltimo}`)
+                    log(`   - [${ticker}] P_Inicio(0) em ${dPrimeiro}: ${pPrimeiro}`)
+                    log(`   - [${ticker}] P_Fim(last) em ${dUltimo}: ${pUltimo}`)
 
                     const precoInicio = pPrimeiro
                     if (precoInicio > 0) {
                         const variacao = ((precoAtual - precoInicio) / precoInicio) * 100
-                        console.log(`   - [${ticker}] Variação: ${variacao.toFixed(2)}%`)
+                        log(`   - [${ticker}] Variação: ${variacao.toFixed(2)}%`)
                         rentabilidadeAcumulada += variacao * valorPosicao
                         pesoTotalValido += valorPosicao
                     }
                 } else {
-                    console.warn(`   ⚠️ [${ticker}] Histórico vazio para ${ticker}`)
+                    log(`   ⚠️ [${ticker}] Histórico vazio para ${ticker}`)
                 }
             } catch (err) {
-                console.error(`   ❌ [${ticker}] Erro histórico:`, (err as any).message)
+                log(`   ❌ [${ticker}] Erro histórico: ${(err as any).message}`)
             }
             await sleep(200) // Delay para evitar bloqueio Brapi
         }
 
         const rentabilidadeFinal = pesoTotalValido > 0 ? (rentabilidadeAcumulada / pesoTotalValido) : 0
-        console.log(`🎯 [RENT-PERIODO] Resultado Final: ${rentabilidadeFinal}% (Peso Total: ${pesoTotalValido})`)
+        log(`🎯 [RENT-PERIODO] Resultado Final: ${rentabilidadeFinal}% (Peso Total: ${pesoTotalValido})`)
         const result = { rentabilidade: rentabilidadeFinal }
 
         // 4. Salvar Cache
-        supabaseAdmin.from('evolucao_cache').upsert({
-            usuario_id: userId,
-            periodo: periodKey,
-            payload_json: result,
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'usuario_id,periodo' }).then(() => {
-            console.log(`💾 [RENT-PERIODO] Cache salvo para usuário ${userId}`)
-        })
+        if (!(userId as string).includes('debug')) {
+            supabaseAdmin.from('evolucao_cache').upsert({
+                usuario_id: userId,
+                periodo: periodKey,
+                payload_json: result,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'usuario_id,periodo' }).then(() => {
+                console.log(`💾 [RENT-PERIODO] Cache salvo para usuário ${userId}`)
+            })
+        }
 
-        res.json({ success: true, data: result })
+        res.json({
+            success: true,
+            data: result,
+            debug: debugLogs.length > 0 ? debugLogs : undefined
+        })
     } catch (error) {
         console.error('❌ [RENT-PERIODO] Erro:', error)
         res.status(500).json({ success: false, message: 'Erro interno no cálculo' })
