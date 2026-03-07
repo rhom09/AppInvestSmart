@@ -57,14 +57,15 @@ export const CarteiraPage = () => {
             {/* Summary */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { l: 'Total Investido', v: formatMoeda(carteira.totalInvestido), c: 'text-text-primary' },
-                    { l: 'Valor Atual', v: formatMoeda(carteira.totalAtual), c: 'text-primary' },
+                    { l: 'Investido', v: formatMoeda(carteira.totalInvestido), c: 'text-text-primary' },
+                    { l: 'Patrimônio', v: formatMoeda(carteira.totalAtual), c: 'text-primary' },
                     { l: 'Resultado', v: formatMoeda(carteira.resultado), c: getVariacaoColor(carteira.resultado) },
-                    { l: 'Rentab.', v: formatPercent(carteira.resultadoPercent), c: getVariacaoColor(carteira.resultadoPercent) },
-                ].map(({ l, v, c }) => (
+                    { l: 'Rentabilidade Total', v: formatPercent(carteira.resultadoPercent), c: getVariacaoColor(carteira.resultadoPercent), s: 'desde a compra' },
+                ].map(({ l, v, c, s }) => (
                     <div key={l} className="card">
                         <p className="text-text-secondary text-xs mb-1">{l}</p>
                         <p className={`text-xl font-bold ${c}`}>{v}</p>
+                        {s && <p className="text-[10px] text-text-muted mt-1">{s}</p>}
                     </div>
                 ))}
             </div>

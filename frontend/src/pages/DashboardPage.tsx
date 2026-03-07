@@ -220,7 +220,7 @@ export const DashboardPage = () => {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <StatCard
                     titulo="Patrimônio Total"
                     valor={formatMoeda(carteira.totalAtual)}
@@ -229,16 +229,22 @@ export const DashboardPage = () => {
                     cor="green"
                 />
                 <StatCard
-                    titulo="Resultado Total"
-                    valor={formatMoeda(carteira.resultado)}
-                    subvalor={formatPercent(carteira.resultadoPercent)}
+                    titulo="Rentabilidade Total"
+                    valor={formatPercent(carteira.resultadoPercent)}
+                    subvalor="desde a compra"
                     variacao={carteira.resultadoPercent}
                     icon={<TrendingUp size={18} />}
-                    cor={carteira.resultado > 0 ? 'green' : carteira.resultado < 0 ? 'red' : 'yellow'}
+                    cor={carteira.resultadoPercent > 0 ? 'green' : carteira.resultadoPercent < 0 ? 'red' : 'yellow'}
                 />
                 <StatCard
                     titulo="Rentabilidade Mês"
                     valor={formatPercent(carteira.rendimentoMes)}
+                    icon={<TrendingUp size={18} />}
+                    cor="blue"
+                />
+                <StatCard
+                    titulo="Rentabilidade Ano"
+                    valor={formatPercent(carteira.rendimentoAno)}
                     icon={<TrendingUp size={18} />}
                     cor="blue"
                 />

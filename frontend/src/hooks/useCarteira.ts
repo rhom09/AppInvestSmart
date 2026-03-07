@@ -108,7 +108,6 @@ export const useCarteira = () => {
         try {
             const rows = await getCarteira(userId)
             const rawItens: ItemCarteira[] = rows.map(row => {
-                // Mapear tipo do banco para o enum do ItemCarteira
                 let tipo: 'ACAO' | 'FII' | 'ETF' | 'RENDA_FIXA' | 'CRIPTO' = 'ACAO'
                 const rawTipo = (row.tipo || '').toUpperCase()
                 if (rawTipo.includes('FII')) tipo = 'FII'
@@ -120,7 +119,7 @@ export const useCarteira = () => {
                     id: row.id ?? crypto.randomUUID(),
                     supabaseId: row.id,
                     ticker: row.ticker,
-                    nome: row.ticker, // Nome inicial é o ticker, buildResumo atualizará com Brapi
+                    nome: row.ticker,
                     tipo,
                     quantidade: row.quantidade,
                     precoMedio: row.preco_medio,
@@ -129,7 +128,7 @@ export const useCarteira = () => {
                     totalAtual: row.quantidade * row.preco_medio,
                     resultado: 0,
                     resultadoPercent: 0,
-                    percentCarteira: 0 // Será calculado em buildResumo
+                    percentCarteira: 0
                 }
             })
 
@@ -139,14 +138,29 @@ export const useCarteira = () => {
                 return
             }
 
-            // Buscar cotações e scores em massa
+            // 1. Buscar cotações atuais (Rápido)
             const tickersUnicos = Array.from(new Set(rawItens.map(i => i.ticker)))
             const { data: quoteRes } = await api.get(`/cotacoes?tickers=${tickersUnicos.join(',')}`)
 
             if (quoteRes.success && quoteRes.data) {
-                // Cálculo de Rendimento baseado no Preço Médio (Total) para evitar chamadas de histórico
-                setCarteira(buildResumo(rawItens, quoteRes.data))
+                const resumoInicial = buildResumo(rawItens, quoteRes.data)
+                setCarteira(resumoInicial)
                 setLastUpdate(new Date())
+
+                // 2. Buscar rentabilidades reais em background (Lento, mas cacheado no backend)
+                Promise.all([
+                    api.get(`/carteira/rentabilidade-v2?userId=${userId}&periodo=1mo`),
+                    api.get(`/carteira/rentabilidade-v2?userId=${userId}&periodo=1y`)
+                ]).then(([resMes, resAno]) => {
+                    const rentMes = resMes.data?.success ? resMes.data.data.rentabilidade : 0
+                    const rentAno = resAno.data?.success ? resAno.data.data.rentabilidade : 0
+
+                    setCarteira(prev => ({
+                        ...prev,
+                        rendimentoMes: rentMes || prev.resultadoPercent,
+                        rendimentoAno: rentAno || prev.resultadoPercent
+                    }))
+                }).catch(err => console.warn('Erro ao carregar rentabilidades reais:', err))
             } else {
                 setCarteira(buildResumo(rawItens))
             }
