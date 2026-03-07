@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { getVariacaoColor } from '@/utils/formatters'
-import { InfoTooltip } from './InfoTooltip'
 
 interface StatCardProps {
     titulo: string
@@ -10,10 +9,9 @@ interface StatCardProps {
     icon?: ReactNode
     cor?: 'green' | 'blue' | 'yellow' | 'red'
     descricao?: string
-    info?: string
 }
 
-export const StatCard = ({ titulo, valor, subvalor, variacao, icon, cor = 'green', descricao, info }: StatCardProps) => {
+export const StatCard = ({ titulo, valor, subvalor, variacao, icon, cor = 'green', descricao }: StatCardProps) => {
     const corMap = {
         green: { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20' },
         blue: { bg: 'bg-secondary/10', text: 'text-secondary', border: 'border-secondary/20' },
@@ -25,11 +23,8 @@ export const StatCard = ({ titulo, valor, subvalor, variacao, icon, cor = 'green
     return (
         <div className={`card border ${c.border} bg-card-glow hover:${c.border.replace('/20', '/40')} transition-all duration-200`}>
             <div className="flex items-start justify-between mb-3">
-                <div className="flex flex-col">
-                    <div className="flex items-center">
-                        <p className="text-text-secondary text-sm font-medium">{titulo}</p>
-                        {info && <InfoTooltip text={info} />}
-                    </div>
+                <div>
+                    <p className="text-text-secondary text-sm font-medium">{titulo}</p>
                     {descricao && <p className="text-text-muted text-xs">{descricao}</p>}
                 </div>
                 {icon && (

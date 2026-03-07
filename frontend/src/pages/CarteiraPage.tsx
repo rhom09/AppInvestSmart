@@ -9,7 +9,6 @@ import { ModalAdicionarAtivo } from '@/components/ModalAdicionarAtivo'
 import { formatMoeda, formatPercent, getVariacaoColor } from '@/utils/formatters'
 import { calcularJurosCompostos } from '@/utils/calculators'
 import { Plus, Trash2, RefreshCw } from 'lucide-react'
-import { InfoTooltip } from '@/components/InfoTooltip'
 
 export const CarteiraPage = () => {
     const { resumo: carteira, loading, refresh: refreshPrices, removerItem, loadingPeriodo } = useCarteiraResumo()
@@ -136,10 +135,7 @@ export const CarteiraPage = () => {
                 </div>
 
                 <div className="card">
-                    <div className="flex items-center gap-2 mb-4">
-                        <h2 className="font-semibold text-text-primary">Score da Carteira</h2>
-                        <InfoTooltip text="Média ponderada da pontuação de cada ativo baseada em saúde financeira e valuation" />
-                    </div>
+                    <h2 className="font-semibold text-text-primary mb-4">Score da Carteira</h2>
                     <ScoreBar score={carteira.scoreCarteira} size="lg" />
                     <div className="mt-6 space-y-3">
                         <div className="flex justify-between text-sm">
