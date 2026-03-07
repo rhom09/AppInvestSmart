@@ -71,12 +71,18 @@ router.get('/evolucao', async (req: Request, res: Response) => {
             .sort((a, b) => a.data.localeCompare(b.data))
 
         if (chartData.length > 0) {
-            supabaseAdmin.from('evolucao_cache').upsert({
+            const { error: upsertError } = await supabaseAdmin.from('evolucao_cache').upsert({
                 usuario_id: userId,
                 periodo: periodo,
                 payload_json: chartData,
                 updated_at: new Date().toISOString()
-            }, { onConflict: 'usuario_id,periodo' }).catch(() => { })
+            }, { onConflict: 'usuario_id,periodo' })
+
+            if (upsertError) {
+                console.error('💾 [EVOLUCAO] Erro ao salvar cache:', upsertError)
+            } else {
+                console.log('💾 [EVOLUCAO] Cache atualizado para usuário ', userId)
+            }
         }
 
         res.json({ success: true, data: chartData })
@@ -152,12 +158,18 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
 
         // 4. Salvar Cache
         if (!(userId as string).includes('debug')) {
-            supabaseAdmin.from('evolucao_cache').upsert({
+            const { error: upsertError } = await supabaseAdmin.from('evolucao_cache').upsert({
                 usuario_id: userId,
                 periodo: periodKey,
                 payload_json: result,
                 updated_at: new Date().toISOString()
-            }, { onConflict: 'usuario_id,periodo' }).catch(() => { })
+            }, { onConflict: 'usuario_id,periodo' })
+
+            if (upsertError) {
+                console.error(`💾 [RENT-PERIODO] Erro cache usuário ${userId}:`, upsertError)
+            } else {
+                console.log(`💾 [RENT-PERIODO] Cache salvo para usuário ${userId}`)
+            }
         }
 
         res.json({ success: true, data: result })
