@@ -4,7 +4,7 @@ import { StatCard } from '@/components/StatCard'
 import { SpotlightAcao } from '@/components/SpotlightAcao'
 import { TabelaIndicadas } from '@/components/TabelaIndicadas'
 import { Wallet, TrendingUp, Star, DollarSign, X, ExternalLink, Radio, Layout } from 'lucide-react'
-import { useCarteira } from '@/hooks/useCarteira'
+import { useCarteiraResumo } from '@/hooks/useCarteiraResumo'
 import { useAcoes } from '@/hooks/useAcoes'
 import { useFIIs } from '@/hooks/useFIIs'
 import { useNoticias } from '@/hooks/useNoticias'
@@ -158,9 +158,20 @@ const FIICard = ({ fii }: { fii: any }) => {
     )
 }
 
+const CardSkeleton = () => (
+    <div className="card animate-pulse space-y-3 h-[132px]">
+        <div className="flex justify-between">
+            <div className="h-4 bg-surface-border rounded w-24" />
+            <div className="h-9 w-9 bg-surface-border rounded-xl" />
+        </div>
+        <div className="h-8 bg-surface-border rounded w-32" />
+        <div className="h-3 bg-surface-border rounded w-20" />
+    </div>
+)
+
 // ─── Main Page ───────────────────────────────────────────────
 export const DashboardPage = () => {
-    const { carteira } = useCarteira()
+    const { resumo: carteira, loading: loadingCarteira, loadingPeriodo } = useCarteiraResumo()
     const { usuario } = useUserStore()
     const { acoes, loading: loadingAcoes } = useAcoes()
     const { fiis, loading: loadingFIIs } = useFIIs()
@@ -190,7 +201,7 @@ export const DashboardPage = () => {
         fetchEvolucao()
     }, [usuario?.id, periodo])
 
-    const composicao = carteira.itens.map((item, i) => ({
+    const composicao = (carteira.itens || []).map((item, i) => ({
         name: item.ticker,
         value: item.totalAtual,
         color: COLORS[i % COLORS.length],
@@ -213,48 +224,53 @@ export const DashboardPage = () => {
                     </h1>
                     <p className="text-text-secondary text-sm mt-1">Aqui está o resumo dos seus investimentos hoje.</p>
                 </div>
-                <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-xl px-4 py-2 hidden sm:flex">
-                    <Star size={14} className="text-primary fill-primary" />
-                    <span className="text-sm font-semibold text-primary">Score: {carteira.scoreCarteira}/100</span>
-                </div>
             </div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <StatCard
-                    titulo="Patrimônio Total"
-                    valor={formatMoeda(carteira.totalAtual)}
-                    variacao={carteira.rendimentoMes}
-                    icon={<Wallet size={18} />}
-                    cor="green"
-                />
-                <StatCard
-                    titulo="Rentabilidade Total"
-                    valor={formatPercent(carteira.resultadoPercent)}
-                    subvalor="desde a compra"
-                    variacao={carteira.resultadoPercent}
-                    icon={<TrendingUp size={18} />}
-                    cor={carteira.resultadoPercent > 0 ? 'green' : carteira.resultadoPercent < 0 ? 'red' : 'yellow'}
-                />
-                <StatCard
-                    titulo="Rentabilidade Mês"
-                    valor={formatPercent(carteira.rendimentoMes)}
-                    icon={<TrendingUp size={18} />}
-                    cor="blue"
-                />
-                <StatCard
-                    titulo="Rentabilidade Ano"
-                    valor={formatPercent(carteira.rendimentoAno)}
-                    icon={<TrendingUp size={18} />}
-                    cor="blue"
-                />
-                <StatCard
-                    titulo="Dividendos Mês"
-                    valor={formatMoeda(carteira.dividendosMes)}
-                    subvalor="estimativa"
-                    icon={<DollarSign size={18} />}
-                    cor="yellow"
-                />
+                {loadingCarteira ? (
+                    Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)
+                ) : (
+                    <>
+                        <StatCard
+                            titulo="Patrimônio Total"
+                            valor={formatMoeda(carteira.totalAtual)}
+                            icon={<Wallet size={18} />}
+                            cor="green"
+                        />
+                        <StatCard
+                            titulo="Rentabilidade Total"
+                            valor={formatPercent(carteira.resultadoPercent)}
+                            subvalor="desde a compra"
+                            variacao={carteira.resultadoPercent}
+                            icon={<TrendingUp size={18} />}
+                            cor={carteira.resultadoPercent >= 0 ? 'green' : 'red'}
+                        />
+                        {loadingPeriodo ? <CardSkeleton /> : (
+                            <StatCard
+                                titulo="Rentabilidade Mês"
+                                valor={formatPercent(carteira.rendimentoMes)}
+                                icon={<TrendingUp size={18} />}
+                                cor="blue"
+                            />
+                        )}
+                        {loadingPeriodo ? <CardSkeleton /> : (
+                            <StatCard
+                                titulo="Rentabilidade Ano"
+                                valor={formatPercent(carteira.rendimentoAno)}
+                                icon={<TrendingUp size={18} />}
+                                cor="blue"
+                            />
+                        )}
+                        <StatCard
+                            titulo="Dividendos Mês"
+                            valor={formatMoeda(carteira.dividendosMes)}
+                            subvalor="estimativa"
+                            icon={<DollarSign size={18} />}
+                            cor="yellow"
+                        />
+                    </>
+                )}
             </div>
 
             {/* Spotlight + Chart Row */}
@@ -292,8 +308,17 @@ export const DashboardPage = () => {
                     {loadingEvolucao ? (
                         <ChartSkeleton />
                     ) : evolucao.length === 0 ? (
-                        <EmptyChartState />
+                        <div className="h-[220px] flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-surface-border rounded-2xl bg-bg-elevated/30">
+                            <div className="w-12 h-12 rounded-full bg-surface-border/30 flex items-center justify-center mb-3 text-text-muted">
+                                <Layout size={24} />
+                            </div>
+                            <h3 className="text-text-primary font-bold text-sm">Histórico indisponível</h3>
+                            <p className="text-text-muted text-xs mt-1 max-w-[200px]">
+                                Histórico disponível após 7 dias com ativos na carteira.
+                            </p>
+                        </div>
                     ) : (
+                        // ... rest of chart ...
                         <ResponsiveContainer width="100%" height={220}>
                             <AreaChart data={evolucao} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                                 <defs>

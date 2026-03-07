@@ -14,7 +14,7 @@ router.get('/evolucao', async (req: Request, res: Response) => {
         const { userId, periodo = '1mo' } = req.query
 
         if (!userId) {
-            console.error('❌ [EVOLUCAO] userId ausente')
+            console.error('❌ [EVOLUCAO] userId ausente na requisição')
             return res.status(400).json({ success: false, message: 'userId é obrigatório' })
         }
 
@@ -22,7 +22,7 @@ router.get('/evolucao', async (req: Request, res: Response) => {
 
         // 1. Verificar Cache
         try {
-            const { data: cacheEntry, error: cacheError } = await supabaseAdmin
+            const { data: cacheEntry } = await supabaseAdmin
                 .from('evolucao_cache')
                 .select('*')
                 .eq('usuario_id', userId)
@@ -39,18 +39,18 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                 }
             }
         } catch (e) {
-            console.warn('⚠️ [EVOLUCAO] Ignorando falha no cache:', (e as any).message)
+            console.warn('⚠️ [EVOLUCAO] Erro ao consultar cache:', (e as any).message)
         }
 
-        // 2. Buscar ativos
+        // 2. Buscar ativos do Supabase
         const { data: ativos, error: supabaseError } = await supabaseAdmin
             .from('carteira_ativos')
             .select('ticker, quantidade')
             .eq('usuario_id', userId)
 
         if (supabaseError) {
-            console.error('❌ [EVOLUCAO] Erro Supabase:', supabaseError)
-            return res.status(500).json({ success: false, message: 'Erro ao buscar ativos' })
+            console.error('❌ [EVOLUCAO] Erro ao buscar ativos no Supabase:', supabaseError)
+            return res.status(500).json({ success: false, message: 'Erro interno no banco de dados' })
         }
 
         if (!ativos || ativos.length === 0) return res.json({ success: true, data: [] })
@@ -58,17 +58,16 @@ router.get('/evolucao', async (req: Request, res: Response) => {
         const evolucaoPorData: Record<string, number> = {}
         const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-        // 3. Buscar histórico
+        // 3. Buscar histórico Brapi
         for (const ativo of ativos) {
             try {
-                process.stdout.write(`   - Buscando Brapi: ${ativo.ticker}... `)
+                process.stdout.write(`   - Buscando Brapi [${userId}]: ${ativo.ticker}... `)
                 const history = await brapiService.buscarHistorico(ativo.ticker, periodo as string)
 
                 if (history && history.length > 0) {
                     console.log(`✅ (${history.length} pts)`)
                     history.forEach((day: any) => {
-                        const dateObj = new Date(day.date * 1000)
-                        const dateKey = dateObj.toISOString().split('T')[0]
+                        const dateKey = new Date(day.date * 1000).toISOString().split('T')[0]
                         const valorNaData = (day.close || 0) * ativo.quantidade
                         evolucaoPorData[dateKey] = (evolucaoPorData[dateKey] || 0) + valorNaData
                     })
@@ -76,13 +75,13 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                     console.log('⚠️ (Vazio)')
                 }
             } catch (err) {
-                console.log(`❌ Erro: ${(err as any).message}`)
+                console.log(`❌ Erro Brapi: ${(err as any).message}`)
             }
             await sleep(200)
         }
 
-        // 4. Formatar e Garantir 2 pontos
-        let chartData = Object.entries(evolucaoPorData)
+        // 4. Formatar dados
+        const chartData = Object.entries(evolucaoPorData)
             .map(([date, value]) => ({
                 data: date,
                 patrimonio: value,
@@ -90,17 +89,7 @@ router.get('/evolucao', async (req: Request, res: Response) => {
             }))
             .sort((a, b) => a.data.localeCompare(b.data))
 
-        if (chartData.length === 1) {
-            const unico = chartData[0]
-            const dataBase = new Date(new Date(unico.data).getTime() - (24 * 60 * 60 * 1000)).toISOString().split('T')[0]
-            chartData.unshift({
-                data: dataBase,
-                patrimonio: unico.patrimonio,
-                label: new Date(dataBase + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-            })
-        }
-
-        // 5. Salvar Cache
+        // 5. Salvar Cache se houver dados
         if (chartData.length > 0) {
             supabaseAdmin.from('evolucao_cache').upsert({
                 usuario_id: userId,
@@ -108,115 +97,109 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                 payload_json: chartData,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'usuario_id,periodo' }).then(({ error }) => {
-                if (!error) console.log('💾 [EVOLUCAO] Cache atualizado.')
+                if (!error) console.log('💾 [EVOLUCAO] Cache atualizado para usuário ', userId)
             })
         }
 
         res.json({ success: true, data: chartData })
     } catch (error) {
-        console.error('❌ [EVOLUCAO] Erro:', error)
-        res.status(500).json({ success: false, message: 'Erro interno' })
+        console.error('❌ [EVOLUCAO] Erro Crítico:', error)
+        res.status(500).json({ success: false, message: 'Erro interno no servidor' })
     }
 })
 
 /**
- * GET /api/carteira/rentabilidade-v2
- * Calcula rentabilidade real (Mês ou Ano) baseada no primeiro preço do período com CACHE
- * Query: userId=uuid&periodo=1mo|1y
+ * GET /api/carteira/rentabilidade-periodo
+ * Calcula a rentabilidade ponderada de uma lista de ativos em um período (mes|ano)
+ * Usa Brapi para histórico e cotação atual. Cache de 6h.
  */
-router.get('/rentabilidade-v2', async (req: Request, res: Response) => {
+router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
     try {
-        const { userId, periodo = '1mo' } = req.query
-        if (!userId) return res.status(400).json({ success: false, message: 'userId obrigatório' })
+        const { tickers, quantities, periodo, userId } = req.query
 
-        console.log(`📊 [RENTABILIDADE-V2] Verificando para ${userId} (${periodo})`)
+        if (!tickers || !quantities || !periodo || !userId) {
+            return res.status(400).json({ success: false, message: 'Parâmetros incompletos' })
+        }
 
-        const cacheKey = `rent_${periodo}`
-        const cacheLimit = periodo === '1mo' ? 6 : 12
+        const tickerList = (tickers as string).split(',')
+        const quantityList = (quantities as string).split(',').map(Number)
+        const periodKey = `rent_${periodo}`
+        const brapiPeriod = periodo === 'ano' ? '1y' : '1mo'
 
-        // 1. Verificar Cache
+        console.log(`📊 [RENT-PERIODO] Iniciando para usuário ${userId} (${periodo})`)
+
+        // 1. Verificar Cache (6 horas)
         try {
             const { data: cacheEntry } = await supabaseAdmin
                 .from('evolucao_cache')
                 .select('*')
                 .eq('usuario_id', userId)
-                .eq('periodo', cacheKey)
+                .eq('periodo', periodKey)
                 .maybeSingle()
 
             if (cacheEntry) {
                 const lastUpdated = new Date(cacheEntry.updated_at)
                 const diffHours = (new Date().getTime() - lastUpdated.getTime()) / (1000 * 60 * 60)
-                if (diffHours < cacheLimit) {
-                    console.log(`✅ [RENTABILIDADE-V2] Cache atingido (${diffHours.toFixed(1)}h)`)
+                if (diffHours < 6) {
+                    console.log(`✅ [RENT-PERIODO] Cache atingido (${diffHours.toFixed(1)}h)`)
                     return res.json({ success: true, data: cacheEntry.payload_json })
                 }
             }
         } catch (e) {
-            console.warn('⚠️ [RENTABILIDADE-V2] Erro cache:', (e as any).message)
+            console.warn('⚠️ [RENT-PERIODO] Erro cache:', (e as any).message)
         }
 
-        // 2. Buscar ativos
-        const { data: ativos, error: supabaseError } = await supabaseAdmin
-            .from('carteira_ativos')
-            .select('ticker, quantidade')
-            .eq('usuario_id', userId)
+        // 2. Buscar cotações atuais (Bulk)
+        const currentQuotes = await brapiService.buscarVariosAtivos(tickerList)
 
-        if (supabaseError || !ativos || ativos.length === 0) {
-            return res.json({ success: true, data: { rentabilidade: 0 } })
-        }
-
-        console.log(`🔄 [RENTABILIDADE-V2] Calculando real...`)
-
-        // 3. Buscar cotações atuais (bulk)
-        const tickers = ativos.map(a => a.ticker)
-        const cotacoes = await brapiService.buscarVariosAtivos(tickers)
-
-        let valorTotalCarteira = 0
         let rentabilidadeAcumulada = 0
         let pesoTotalValido = 0
-
         const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-        for (const ativo of ativos) {
-            const cotacao = cotacoes.find(c => c.symbol === ativo.ticker)
-            const precoAtual = cotacao?.regularMarketPrice || 0
-            const valorAtivo = precoAtual * ativo.quantidade
-            valorTotalCarteira += valorAtivo
+        // 3. Calcular para cada ativo
+        for (let i = 0; i < tickerList.length; i++) {
+            const ticker = tickerList[i]
+            const qtd = quantityList[i]
+            const quote = currentQuotes.find(q => q.symbol === ticker)
+            const precoAtual = quote?.regularMarketPrice || 0
+
+            if (precoAtual === 0) continue
+
+            const valorPosicao = precoAtual * qtd
 
             try {
-                const history = await brapiService.buscarHistorico(ativo.ticker, periodo as string)
+                const history = await brapiService.buscarHistorico(ticker, brapiPeriod)
                 if (history && history.length > 0) {
-                    // Preço de 30 dias/1 ano atrás (primeiro do array Brapi)
-                    const precoBase = history[0].close || history[0].open
-                    if (precoBase > 0) {
-                        const variation = ((precoAtual - precoBase) / precoBase) * 100
-                        rentabilidadeAcumulada += variation * valorAtivo
-                        pesoTotalValido += valorAtivo
+                    const precoInicio = history[0].close || history[0].open
+                    if (precoInicio > 0) {
+                        const variacao = ((precoAtual - precoInicio) / precoInicio) * 100
+                        rentabilidadeAcumulada += variacao * valorPosicao
+                        pesoTotalValido += valorPosicao
                     }
                 }
-            } catch (e) {
-                console.warn(`   - Falha histórico ${ativo.ticker}`)
+            } catch (err) {
+                console.warn(`⚠️ [RENT-PERIODO] Erro histórico ${ticker}:`, (err as any).message)
             }
-            await sleep(200)
+            await sleep(200) // Delay para evitar bloqueio Brapi
         }
 
         const rentabilidadeFinal = pesoTotalValido > 0 ? (rentabilidadeAcumulada / pesoTotalValido) : 0
-        const result = { rentabilidade: rentabilidadeFinal, periodo }
+        const result = { rentabilidade: rentabilidadeFinal }
 
         // 4. Salvar Cache
         supabaseAdmin.from('evolucao_cache').upsert({
             usuario_id: userId,
-            periodo: cacheKey,
+            periodo: periodKey,
             payload_json: result,
             updated_at: new Date().toISOString()
-        }, { onConflict: 'usuario_id,periodo' }).then(({ error }) => {
-            if (!error) console.log('💾 [RENTABILIDADE-V2] Cache salvo.')
+        }, { onConflict: 'usuario_id,periodo' }).then(() => {
+            console.log(`💾 [RENT-PERIODO] Cache salvo para usuário ${userId}`)
         })
 
         res.json({ success: true, data: result })
     } catch (error) {
-        console.error('❌ [RENTABILIDADE-V2] Erro:', error)
-        res.status(500).json({ success: false, message: 'Erro interno' })
+        console.error('❌ [RENT-PERIODO] Erro:', error)
+        res.status(500).json({ success: false, message: 'Erro interno no cálculo' })
     }
 })
 

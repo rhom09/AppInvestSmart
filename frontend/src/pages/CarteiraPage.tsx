@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { useCarteira } from '@/hooks/useCarteira'
+import { StatCard } from '@/components/StatCard'
+import { useCarteiraResumo } from '@/hooks/useCarteiraResumo'
 import { VariacaoBadge } from '@/components/VariacaoBadge'
 import { ScoreBar } from '@/components/ScoreBar'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
@@ -10,7 +11,7 @@ import { calcularJurosCompostos } from '@/utils/calculators'
 import { Plus, Trash2, RefreshCw } from 'lucide-react'
 
 export const CarteiraPage = () => {
-    const { carteira, loading, lastUpdate, refreshPrices, removerItem } = useCarteira()
+    const { resumo: carteira, loading, refresh: refreshPrices, removerItem, loadingPeriodo } = useCarteiraResumo()
     const [aporte, setAporte] = useState(500)
     const [taxa, setTaxa] = useState(1.0)
     const [meses, setMeses] = useState(24)
@@ -26,14 +27,7 @@ export const CarteiraPage = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary">Minha Carteira</h1>
-                    <div className="flex items-center gap-3 mt-1">
-                        <p className="text-text-secondary text-sm">Visão consolidada dos seus investimentos</p>
-                        {lastUpdate && (
-                            <span className="text-[10px] text-text-muted bg-surface-border/30 px-2 py-0.5 rounded-full">
-                                Atualizado às {lastUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                        )}
-                    </div>
+                    <p className="text-text-secondary text-sm mt-1">Visão consolidada dos seus investimentos</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
@@ -55,19 +49,40 @@ export const CarteiraPage = () => {
             </div>
 
             {/* Summary */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                    { l: 'Investido', v: formatMoeda(carteira.totalInvestido), c: 'text-text-primary' },
-                    { l: 'Patrimônio', v: formatMoeda(carteira.totalAtual), c: 'text-primary' },
-                    { l: 'Resultado', v: formatMoeda(carteira.resultado), c: getVariacaoColor(carteira.resultado) },
-                    { l: 'Rentabilidade Total', v: formatPercent(carteira.resultadoPercent), c: getVariacaoColor(carteira.resultadoPercent), s: 'desde a compra' },
-                ].map(({ l, v, c, s }) => (
-                    <div key={l} className="card">
-                        <p className="text-text-secondary text-xs mb-1">{l}</p>
-                        <p className={`text-xl font-bold ${c}`}>{v}</p>
-                        {s && <p className="text-[10px] text-text-muted mt-1">{s}</p>}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                    titulo="Patrimônio Total"
+                    valor={formatMoeda(carteira.totalAtual)}
+                    icon={<Plus size={18} className="rotate-45" />}
+                    cor="green"
+                />
+                <StatCard
+                    titulo="Rentabilidade Total"
+                    valor={formatPercent(carteira.resultadoPercent)}
+                    subvalor="desde a compra"
+                    variacao={carteira.resultadoPercent}
+                    cor={carteira.resultadoPercent >= 0 ? 'green' : 'red'}
+                />
+                {loadingPeriodo ? (
+                    <div className="h-[132px] bg-bg-card rounded-3xl animate-pulse flex items-center justify-center border border-surface-border">
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="h-3 w-20 bg-surface-border rounded" />
+                            <div className="h-6 w-24 bg-surface-border rounded" />
+                        </div>
                     </div>
-                ))}
+                ) : (
+                    <StatCard
+                        titulo="Rentabilidade Mês"
+                        valor={formatPercent(carteira.rendimentoMes)}
+                        cor="blue"
+                    />
+                )}
+                <StatCard
+                    titulo="Rendimento Estimado"
+                    valor={formatMoeda(carteira.dividendosMes)}
+                    subvalor="estimativa mensal"
+                    cor="yellow"
+                />
             </div>
 
             {/* Portfolio Table + Score */}
