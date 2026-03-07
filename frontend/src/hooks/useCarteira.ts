@@ -56,6 +56,13 @@ const buildResumo = (
     const totalAtual = itensComPreco.reduce((s, i) => s + i.totalAtual, 0)
     const dividendosMes = itensComPreco.reduce((s, i) => s + (i.dividendosMes || 0), 0)
 
+    const resultadoTotal = totalAtual - totalInvestido
+    const resultadoPercent = totalInvestido > 0 ? (resultadoTotal / totalInvestido) * 100 : 0
+
+    // Para evitar histórico lento, usamos o resultado total da carteira como base
+    const finalRendimentoMes = rendimentoMes !== 0 ? rendimentoMes : resultadoPercent
+    const finalRendimentoAno = rendimentoAno !== 0 ? rendimentoAno : resultadoPercent
+
     // 2. Calcular percentual de cada ativo na carteira e score ponderado
     let somaPesos = 0
     let somaScoresPonderados = 0
@@ -80,14 +87,12 @@ const buildResumo = (
         itens: itensProcessados,
         totalInvestido,
         totalAtual,
-        rendimentoMes,
-        rendimentoAno,
+        rendimentoMes: finalRendimentoMes,
+        rendimentoAno: finalRendimentoAno,
         dividendosMes,
         scoreCarteira,
-        resultado: totalAtual - totalInvestido,
-        resultadoPercent: totalInvestido > 0
-            ? ((totalAtual - totalInvestido) / totalInvestido) * 100
-            : 0,
+        resultado: resultadoTotal,
+        resultadoPercent,
     }
 }
 
@@ -139,31 +144,8 @@ export const useCarteira = () => {
             const { data: quoteRes } = await api.get(`/cotacoes?tickers=${tickersUnicos.join(',')}`)
 
             if (quoteRes.success && quoteRes.data) {
-                // Calcular rentabilidades (mês e ano) via backend
-                const tickers = rawItens.map(i => i.ticker).join(',')
-
-                // Calculamos os pesos baseados no totalAtual estimado (preços buscados na Brapi)
-                const itensComPrecoInfo = rawItens.map(item => ({
-                    ...item,
-                    totalAtual: (quoteRes.data[item.ticker]?.preco || item.precoMedio) * item.quantidade
-                }))
-                const totalCalculado = itensComPrecoInfo.reduce((acc, i) => acc + i.totalAtual, 0)
-                const weights = itensComPrecoInfo.map(i => totalCalculado > 0 ? (i.totalAtual / totalCalculado).toFixed(4) : "0").join(',')
-
-                try {
-                    const [resMes, resAno] = await Promise.all([
-                        api.get(`/carteira/rentabilidade?tickers=${tickers}&weights=${weights}&periodo=mes`),
-                        api.get(`/carteira/rentabilidade?tickers=${tickers}&weights=${weights}&periodo=ano`)
-                    ])
-
-                    const rendMes = resMes.data?.success ? resMes.data.data.rentabilidade : 0
-                    const rendAno = resAno.data?.success ? resAno.data.data.rentabilidade : 0
-
-                    setCarteira(buildResumo(rawItens, quoteRes.data, rendMes, rendAno))
-                } catch (rentError) {
-                    console.error('Erro ao buscar rentabilidades:', rentError)
-                    setCarteira(buildResumo(rawItens, quoteRes.data))
-                }
+                // Cálculo de Rendimento baseado no Preço Médio (Total) para evitar chamadas de histórico
+                setCarteira(buildResumo(rawItens, quoteRes.data))
                 setLastUpdate(new Date())
             } else {
                 setCarteira(buildResumo(rawItens))
