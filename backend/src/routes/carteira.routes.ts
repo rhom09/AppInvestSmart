@@ -110,10 +110,19 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                     console.log(`     Último:   date=${history[history.length - 1].date} close=${history[history.length - 1].close}`)
                     history.forEach((day: any) => {
                         const dayDate = new Date(day.date * 1000)
+                        dayDate.setHours(0, 0, 0, 0)
 
                         if (dayDate < oldestPurchaseDate) {
                             truncated = true
-                            return // Skip dates before oldest purchase
+                            return // Skip dates before any purchase
+                        }
+
+                        // Validar se o ativo específico já havia sido comprado nesta data
+                        const dataCompraAtivo = ativo.data_compra ? new Date(ativo.data_compra) : new Date(0)
+                        dataCompraAtivo.setHours(0, 0, 0, 0)
+
+                        if (dayDate < dataCompraAtivo) {
+                            return // Ativo ainda não pertencia à carteira nesta data
                         }
 
                         const dateKey = dayDate.toISOString().split('T')[0]
