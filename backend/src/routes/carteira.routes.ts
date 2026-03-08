@@ -53,7 +53,7 @@ router.get('/evolucao', async (req: Request, res: Response) => {
         const { data: ativos, error: supabaseError } = await supabaseAdmin
             .from('carteira_ativos')
             .select('ticker, quantidade')
-            .eq('usuario_id', userId)
+            .eq('user_id', userId)
 
         console.log(`📦 [EVOLUCAO] Supabase error: ${supabaseError?.message || 'nenhum'}`)
         console.log(`📦 [EVOLUCAO] Ativos encontrados no Supabase: ${ativos?.length ?? 0}`)
