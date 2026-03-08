@@ -5,6 +5,7 @@ import { VariacaoBadge } from '@/components/VariacaoBadge'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { formatMoeda, SEGMENTOS_FIIS, formatData } from '@/utils/formatters'
 import { DIVIDENDOS_MOCK } from '@/data/mockData'
+import { TruncatedName } from '@/components/TruncatedName'
 
 export const FIIsPage = () => {
     const {
@@ -83,7 +84,7 @@ export const FIIsPage = () => {
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
                                                 <h3 className="text-lg font-bold text-text-primary group-hover:text-primary transition-colors">{fii.ticker}</h3>
-                                                <p className="text-xs text-text-muted truncate max-w-[150px]">{fii.nome}</p>
+                                                <TruncatedName name={fii.nome} className="text-xs text-text-muted max-w-[150px]" />
                                             </div>
                                             <VariacaoBadge variacao={fii.variacaoPercent} />
                                         </div>

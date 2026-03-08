@@ -11,6 +11,7 @@ import { useNoticias } from '@/hooks/useNoticias'
 import { api } from '@/services/api'
 import { formatMoeda, formatPercent, getVariacaoColor } from '@/utils/formatters'
 import { useUserStore } from '@/store/user.store'
+import { TruncatedName } from '@/components/TruncatedName'
 import type { Ativo } from '@/types'
 
 const COLORS = ['#00e88f', '#00b8ff', '#f0a500', '#ff4d6d', '#a78bfa']
@@ -133,7 +134,7 @@ const FIICard = ({ fii }: { fii: any }) => {
             <div className="flex items-start justify-between mb-3 min-w-0">
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-black text-text-primary">{fii.ticker}</p>
-                    <p className="text-[11px] text-text-muted truncate" title={fii.nome}>{fii.nome}</p>
+                    <TruncatedName name={fii.nome} className="text-[11px] text-text-muted" />
                 </div>
                 <span className="text-xs font-bold shrink-0 ml-2" style={{ color: cor }}>{fii.score}</span>
             </div>
