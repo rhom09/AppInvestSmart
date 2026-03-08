@@ -12,7 +12,13 @@ router.get('/evolucao', async (req: Request, res: Response) => {
     try {
         const { userId, periodo = '1mo' } = req.query
 
+        console.log(`\n🔍 [EVOLUCAO] ===== Nova requisição =====`)
+        console.log(`🔍 [EVOLUCAO] userId: ${userId || 'NÃO INFORMADO'}`)
+        console.log(`🔍 [EVOLUCAO] periodo: ${periodo}`)
+        console.log(`🔍 [EVOLUCAO] query params completos:`, JSON.stringify(req.query))
+
         if (!userId) {
+            console.log(`❌ [EVOLUCAO] userId ausente — retornando 400`)
             return res.status(400).json({ success: false, message: 'userId é obrigatório' })
         }
 
@@ -28,7 +34,16 @@ router.get('/evolucao', async (req: Request, res: Response) => {
             if (cacheEntry) {
                 const lastUpdated = new Date(cacheEntry.updated_at)
                 const diffHours = (new Date().getTime() - lastUpdated.getTime()) / (1000 * 60 * 60)
-                if (diffHours < 24) return res.json({ success: true, data: cacheEntry.payload_json })
+                console.log(`💾 [EVOLUCAO] Cache encontrado — idade: ${diffHours.toFixed(2)}h — payload length: ${JSON.stringify(cacheEntry.payload_json)?.length}`)
+                if (diffHours < 24) {
+                    const cachedData = cacheEntry.payload_json
+                    console.log(`✅ [EVOLUCAO] Retornando do cache — ${Array.isArray(cachedData) ? cachedData.length : 0} pontos`)
+                    return res.json({ success: true, data: cachedData })
+                } else {
+                    console.log(`🕐 [EVOLUCAO] Cache expirado (${diffHours.toFixed(2)}h) — buscando dados frescos`)
+                }
+            } else {
+                console.log(`💾 [EVOLUCAO] Nenhum cache encontrado para userId=${userId} periodo=${periodo}`)
             }
         } catch (e) {
             console.warn('⚠️ [EVOLUCAO] Erro cache:', (e as any).message)
@@ -40,24 +55,43 @@ router.get('/evolucao', async (req: Request, res: Response) => {
             .select('ticker, quantidade')
             .eq('usuario_id', userId)
 
-        if (supabaseError || !ativos) return res.status(500).json({ success: false, message: 'Erro no banco' })
-        if (ativos.length === 0) return res.json({ success: true, data: [] })
+        console.log(`📦 [EVOLUCAO] Supabase error: ${supabaseError?.message || 'nenhum'}`)
+        console.log(`📦 [EVOLUCAO] Ativos encontrados no Supabase: ${ativos?.length ?? 0}`)
+        if (ativos && ativos.length > 0) {
+            ativos.forEach(a => console.log(`   - ${a.ticker} (qtd: ${a.quantidade})`))
+        }
+
+        if (supabaseError || !ativos) {
+            console.log(`❌ [EVOLUCAO] Erro Supabase — abortando`)
+            return res.status(500).json({ success: false, message: 'Erro no banco' })
+        }
+        if (ativos.length === 0) {
+            console.log(`⚠️ [EVOLUCAO] Nenhum ativo na carteira — retornando []`)
+            return res.json({ success: true, data: [] })
+        }
 
         const evolucaoPorData: Record<string, number> = {}
         const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
         // 3. Buscar histórico
+        console.log(`🌐 [EVOLUCAO] Buscando histórico Brapi para ${ativos.length} ativos...`)
         for (const ativo of ativos) {
             try {
+                console.log(`  → [BRAPI] Buscando ${ativo.ticker} periodo=${periodo}...`)
                 const history = await brapiService.buscarHistorico(ativo.ticker, periodo as string)
+                console.log(`  ← [BRAPI] ${ativo.ticker}: ${history?.length ?? 0} pontos retornados`)
                 if (history && history.length > 0) {
+                    console.log(`     Primeiro: date=${history[0].date} close=${history[0].close}`)
+                    console.log(`     Último:   date=${history[history.length - 1].date} close=${history[history.length - 1].close}`)
                     history.forEach((day: any) => {
                         const dateKey = new Date(day.date * 1000).toISOString().split('T')[0]
                         evolucaoPorData[dateKey] = (evolucaoPorData[dateKey] || 0) + (day.close || 0) * ativo.quantidade
                     })
+                } else {
+                    console.warn(`  ⚠️ [BRAPI] ${ativo.ticker}: histórico vazio ou null`)
                 }
-            } catch (err) {
-                console.warn(`Erro Brapi ${ativo.ticker}`)
+            } catch (err: any) {
+                console.error(`  ❌ [BRAPI] ${ativo.ticker}: ERRO — ${err.message}`)
             }
             await sleep(200)
         }
@@ -69,6 +103,14 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                 label: new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
             }))
             .sort((a, b) => a.data.localeCompare(b.data))
+
+        console.log(`📊 [EVOLUCAO] chartData gerado: ${chartData.length} pontos`)
+        if (chartData.length > 0) {
+            console.log(`   Primeiro: ${chartData[0].data} | R$ ${chartData[0].patrimonio.toFixed(2)}`)
+            console.log(`   Último:   ${chartData[chartData.length - 1].data} | R$ ${chartData[chartData.length - 1].patrimonio.toFixed(2)}`)
+        } else {
+            console.warn(`⚠️ [EVOLUCAO] chartData vazio — nada para exibir no gráfico`)
+        }
 
         if (chartData.length > 0) {
             const { error: upsertError } = await supabaseAdmin.from('evolucao_cache').upsert({
@@ -85,8 +127,10 @@ router.get('/evolucao', async (req: Request, res: Response) => {
             }
         }
 
+        console.log(`✅ [EVOLUCAO] Retornando ${chartData.length} pontos\n`)
         res.json({ success: true, data: chartData })
-    } catch (error) {
+    } catch (error: any) {
+        console.error(`❌ [EVOLUCAO] Erro inesperado:`, error.message || error)
         res.status(500).json({ success: false, message: 'Erro interno' })
     }
 })
