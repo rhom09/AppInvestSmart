@@ -36,9 +36,16 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                 const diffHours = (new Date().getTime() - lastUpdated.getTime()) / (1000 * 60 * 60)
                 console.log(`💾 [EVOLUCAO] Cache encontrado — idade: ${diffHours.toFixed(2)}h — payload length: ${JSON.stringify(cacheEntry.payload_json)?.length}`)
                 if (diffHours < 24) {
-                    const cachedData = cacheEntry.payload_json
-                    console.log(`✅ [EVOLUCAO] Retornando do cache — ${Array.isArray(cachedData) ? cachedData.length : 0} pontos`)
-                    return res.json({ success: true, data: cachedData })
+                    const cachedResponse = cacheEntry.payload_json
+
+                    // Suporta tanto o formato antigo (array) quanto o novo (objeto { data, aviso })
+                    if (Array.isArray(cachedResponse)) {
+                        console.log(`✅ [EVOLUCAO] Retornando do cache (formato antigo) — ${cachedResponse.length} pontos`)
+                        return res.json({ success: true, data: cachedResponse })
+                    } else {
+                        console.log(`✅ [EVOLUCAO] Retornando do cache — ${cachedResponse.data?.length ?? 0} pontos`)
+                        return res.json({ success: true, data: cachedResponse.data, aviso: cachedResponse.aviso })
+                    }
                 } else {
                     console.log(`🕐 [EVOLUCAO] Cache expirado (${diffHours.toFixed(2)}h) — buscando dados frescos`)
                 }
@@ -52,13 +59,24 @@ router.get('/evolucao', async (req: Request, res: Response) => {
         // 2. Buscar ativos
         const { data: ativos, error: supabaseError } = await supabaseAdmin
             .from('carteira_ativos')
-            .select('ticker, quantidade')
+            .select('ticker, quantidade, data_compra')
             .eq('user_id', userId)
 
         console.log(`📦 [EVOLUCAO] Supabase error: ${supabaseError?.message || 'nenhum'}`)
         console.log(`📦 [EVOLUCAO] Ativos encontrados no Supabase: ${ativos?.length ?? 0}`)
+
+        let oldestPurchaseDate = new Date()
+
         if (ativos && ativos.length > 0) {
-            ativos.forEach(a => console.log(`   - ${a.ticker} (qtd: ${a.quantidade})`))
+            ativos.forEach(a => {
+                console.log(`   - ${a.ticker} (qtd: ${a.quantidade}, data_compra: ${a.data_compra})`)
+                if (a.data_compra) {
+                    const dt = new Date(a.data_compra)
+                    if (dt < oldestPurchaseDate) {
+                        oldestPurchaseDate = dt
+                    }
+                }
+            })
         }
 
         if (supabaseError || !ativos) {
@@ -70,11 +88,18 @@ router.get('/evolucao', async (req: Request, res: Response) => {
             return res.json({ success: true, data: [] })
         }
 
+        // Truncate time info from oldest purchase date for comparison
+        oldestPurchaseDate.setHours(0, 0, 0, 0)
+        console.log(`📅 [EVOLUCAO] Data de compra mais antiga: ${oldestPurchaseDate.toISOString()}`)
+
         const evolucaoPorData: Record<string, number> = {}
         const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
         // 3. Buscar histórico
         console.log(`🌐 [EVOLUCAO] Buscando histórico Brapi para ${ativos.length} ativos...`)
+
+        let truncated = false
+
         for (const ativo of ativos) {
             try {
                 console.log(`  → [BRAPI] Buscando ${ativo.ticker} periodo=${periodo}...`)
@@ -84,7 +109,14 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                     console.log(`     Primeiro: date=${history[0].date} close=${history[0].close}`)
                     console.log(`     Último:   date=${history[history.length - 1].date} close=${history[history.length - 1].close}`)
                     history.forEach((day: any) => {
-                        const dateKey = new Date(day.date * 1000).toISOString().split('T')[0]
+                        const dayDate = new Date(day.date * 1000)
+
+                        if (dayDate < oldestPurchaseDate) {
+                            truncated = true
+                            return // Skip dates before oldest purchase
+                        }
+
+                        const dateKey = dayDate.toISOString().split('T')[0]
                         evolucaoPorData[dateKey] = (evolucaoPorData[dateKey] || 0) + (day.close || 0) * ativo.quantidade
                     })
                 } else {
@@ -96,11 +128,13 @@ router.get('/evolucao', async (req: Request, res: Response) => {
             await sleep(200)
         }
 
+        const aviso = truncated ? `Exibindo desde ${oldestPurchaseDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}, data da primeira compra` : undefined
+
         const chartData = Object.entries(evolucaoPorData)
             .map(([date, value]) => ({
                 data: date,
                 patrimonio: value,
-                label: new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                label: new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
             }))
             .sort((a, b) => a.data.localeCompare(b.data))
 
@@ -116,7 +150,7 @@ router.get('/evolucao', async (req: Request, res: Response) => {
             const { error: upsertError } = await supabaseAdmin.from('evolucao_cache').upsert({
                 usuario_id: userId,
                 periodo: periodo,
-                payload_json: chartData,
+                payload_json: { data: chartData, aviso },
                 updated_at: new Date().toISOString()
             }, { onConflict: 'usuario_id,periodo' })
 
@@ -128,7 +162,7 @@ router.get('/evolucao', async (req: Request, res: Response) => {
         }
 
         console.log(`✅ [EVOLUCAO] Retornando ${chartData.length} pontos\n`)
-        res.json({ success: true, data: chartData })
+        res.json({ success: true, data: chartData, aviso })
     } catch (error: any) {
         console.error(`❌ [EVOLUCAO] Erro inesperado:`, error.message || error)
         res.status(500).json({ success: false, message: 'Erro interno' })

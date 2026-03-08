@@ -180,22 +180,26 @@ export const DashboardPage = () => {
 
     const [selectedAtivo, setSelectedAtivo] = useState<Ativo | null>(null)
     const [evolucao, setEvolucao] = useState<any[]>([])
-    const [loadingEvolucao, setLoadingEvolucao] = useState(true)
+    const [isLoadingEvolucao, setIsLoadingEvolucao] = useState(true)
+    const [avisoEvolucao, setAvisoEvolucao] = useState<string | null>(null)
+
+    // Efeito para carregar evolução
     const [periodo, setPeriodo] = useState('1mo')
 
     useEffect(() => {
         const fetchEvolucao = async () => {
             if (!usuario?.id) return
-            setLoadingEvolucao(true)
+            setIsLoadingEvolucao(true)
             try {
                 const { data: res } = await api.get(`/carteira/evolucao?userId=${usuario.id}&periodo=${periodo}`)
                 if (res.success) {
                     setEvolucao(res.data)
+                    setAvisoEvolucao(res.aviso || null)
                 }
             } catch (error) {
                 console.error('Erro ao buscar evolução patrimonial:', error)
             } finally {
-                setLoadingEvolucao(false)
+                setIsLoadingEvolucao(false)
             }
         }
 
@@ -299,7 +303,7 @@ export const DashboardPage = () => {
                         </div>
                     </div>
 
-                    {loadingEvolucao ? (
+                    {isLoadingEvolucao ? (
                         <ChartSkeleton />
                     ) : evolucao.length === 0 ? (
                         <div className="h-[220px] flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-surface-border rounded-2xl bg-bg-elevated/30">
@@ -313,42 +317,49 @@ export const DashboardPage = () => {
                         </div>
                     ) : (
                         // ... rest of chart ...
-                        <ResponsiveContainer width="100%" height={220}>
-                            <AreaChart data={evolucao} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} style={{ outline: 'none' }}>
-                                <defs>
-                                    <linearGradient id="gradGreen" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#00e88f" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#00e88f" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis
-                                    dataKey="label"
-                                    tick={{ fill: '#52607a', fontSize: 11 }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    minTickGap={30}
-                                />
-                                <YAxis
-                                    tick={{ fill: '#52607a', fontSize: 11 }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tickFormatter={v => formatMoeda(v).replace('R$', '').trim()}
-                                    width={60}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#1e2438',
-                                        border: '1px solid #2a3050',
-                                        borderRadius: '8px',
-                                        color: '#e8eaf2'
-                                    }}
-                                    itemStyle={{ color: '#e8eaf2' }}
-                                    labelStyle={{ color: '#e8eaf2' }}
-                                    formatter={formatTooltip}
-                                />
-                                <Area type="monotone" dataKey="patrimonio" stroke="#00e88f" strokeWidth={2} fill="url(#gradGreen)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                        <div>
+                            <ResponsiveContainer width="100%" height={220}>
+                                <AreaChart data={evolucao} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} style={{ outline: 'none' }}>
+                                    <defs>
+                                        <linearGradient id="gradGreen" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#00e88f" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#00e88f" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis
+                                        dataKey="label"
+                                        tick={{ fill: '#52607a', fontSize: 11 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        minTickGap={30}
+                                    />
+                                    <YAxis
+                                        tick={{ fill: '#52607a', fontSize: 11 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tickFormatter={v => formatMoeda(v).replace('R$', '').trim()}
+                                        width={60}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#1e2438',
+                                            border: '1px solid #2a3050',
+                                            borderRadius: '8px',
+                                            color: '#e8eaf2'
+                                        }}
+                                        itemStyle={{ color: '#e8eaf2' }}
+                                        labelStyle={{ color: '#e8eaf2' }}
+                                        formatter={formatTooltip}
+                                    />
+                                    <Area type="monotone" dataKey="patrimonio" stroke="#00e88f" strokeWidth={2} fill="url(#gradGreen)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                            {avisoEvolucao && (
+                                <p className="text-center text-[11px] text-text-muted italic mt-2">
+                                    {avisoEvolucao}
+                                </p>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
