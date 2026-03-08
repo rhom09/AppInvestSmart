@@ -30,7 +30,13 @@ export const TICKERS_ACOES = [
     'TUPY3', 'FRAS3', 'MRFG3', 'SMLS3', 'GOLL4', 'AZUL4', 'ECOR3', 'STBP3', 'PSSA3', 'SULA11',
     'BBDC3', 'SANB11', 'SMTO3', 'SLCE3', 'AGRO3', 'TTEN3', 'LJQQ3', 'SOMA3', 'VIVA3', 'ARZZ3',
     'SBFG3', 'HYPE3', 'FLRY3', 'HAPV3', 'GNDI3', 'ODPV3', 'DASA3', 'QUAL3', 'PARD3', 'CVCB3',
-    'DESK3', 'LWSA3', 'CASH3', 'INTB3', 'MLAS3', 'OIBR3', 'TELB4', 'FIQE3', 'EQPA3', 'CGAS5'
+    'DESK3', 'LWSA3', 'CASH3', 'INTB3', 'MLAS3', 'OIBR3', 'TELB4', 'FIQE3', 'EQPA3', 'CGAS5',
+    // Expansão Fase 2 (~50 ativos)
+    'ALPA4', 'ANIM3', 'ATOM3', 'BLAU3', 'BMGB4', 'BRKM5', 'CBAV3', 'CMIN3', 'CSNA3', 'CXSE3',
+    'DIRR3', 'DMMO3', 'DXCO3', 'ENAT3', 'ESPA3', 'EVEN3', 'EZTC3', 'FESA4', 'GFSA3', 'GRND3',
+    'HBSA3', 'INEP4', 'IRBR3', 'JFEN3', 'JHSF3', 'KEPL3', 'KLBN11', 'LEVE3', 'LOGG3', 'LREN3',
+    'MDIA3', 'MEGA3', 'MILS3', 'MOVI3', 'MRVE3', 'MULT3', 'MYPK3', 'NCAB3', 'NEOE3', 'NGRD3',
+    'NIGO3', 'NTCO3', 'NUBD3', 'ONCO3', 'ORVR3', 'PETZ3', 'PLPL3', 'PMAM3', 'PNVL3', 'PTBL3'
 ]
 
 export const TICKERS_FIIS = [
@@ -40,7 +46,9 @@ export const TICKERS_FIIS = [
     // Novos FIIs (Expansão 48)
     'HSML11', 'RBRR11', 'XPCI11', 'VRTA11', 'HCTR11', 'IRDM11', 'RZAG11', 'MALL11',
     'ABCP11', 'BRCR11', 'FVPQ11', 'JSAF11', 'RCRB11', 'VPSI11', 'MGFF11', 'OUJP11',
-    'HGRU11', 'VINO11', 'URPR11', 'GTWR11', 'TGAR11', 'RBVA11', 'ALZR11', 'VGHF11'
+    'HGRU11', 'VINO11', 'URPR11', 'GTWR11', 'TGAR11', 'RBVA11', 'ALZR11', 'VGHF11',
+    // Expansão Fase 2 (~10 FIIs)
+    'BTCI11', 'CVBI11', 'DEVA11', 'EDGA11', 'HGBS11', 'HGPO11', 'RBCO11', 'RECR11', 'REIT11', 'VSHO11'
 ]
 
 const MAP_SETORES: Record<string, string> = {
