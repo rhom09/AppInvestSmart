@@ -1,15 +1,9 @@
 import { Router, Request, Response } from 'express'
 import { cacheService } from '../services/cache.service'
-import { brapiService, TICKERS_FIIS } from '../services/brapi.service'
+import { brapiService, TICKERS_FIIS, TICKERS_ACOES } from '../services/brapi.service'
 
 const router = Router()
 
-const TICKERS_ACOES = [
-    'WEGE3', 'ITUB4', 'BBAS3', 'PETR4', 'VALE3', 'ABEV3', 'RENT3', 'SUZB3', 'EGIE3', 'ITSA4',
-    'MGLU3', 'BBDC4', 'PRIO3', 'VIVT3', 'RADL3', 'EMBR3', 'TOTS3', 'JBSS3', 'CSAN3', 'EQTL3',
-    'CCRO3', 'BRFS3', 'SBSP3', 'AZZA3', 'UGPA3', 'RAIL3', 'MULT3', 'TAEE11', 'CPFE3', 'CPLE6',
-    'ENGI11', 'SAPR4', 'BEEF3', 'MRVE3', 'DIRR3', 'TIMS3', 'CMIN3', 'BPAC11', 'PETZ3', 'RDOR3'
-]
 
 // Static name map to avoid calling BRAPI for every search keystroke
 const NAMES_ACOES: Record<string, string> = {
