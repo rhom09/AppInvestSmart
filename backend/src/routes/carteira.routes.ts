@@ -35,7 +35,9 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                 const lastUpdated = new Date(cacheEntry.updated_at)
                 const diffHours = (new Date().getTime() - lastUpdated.getTime()) / (1000 * 60 * 60)
                 console.log(`💾 [EVOLUCAO] Cache encontrado — idade: ${diffHours.toFixed(2)}h — payload length: ${JSON.stringify(cacheEntry.payload_json)?.length}`)
-                if (diffHours < 24) {
+
+                // FORCE CACHE BYPASS TO FLUSH OLD WEEKLY/MONTHLY DATA
+                if (diffHours < -1) { // Forced false condition to bypass cache
                     const cachedResponse = cacheEntry.payload_json
 
                     // Suporta tanto o formato antigo (array) quanto o novo (objeto { data, aviso })
@@ -47,7 +49,7 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                         return res.json({ success: true, data: cachedResponse.data, aviso: cachedResponse.aviso })
                     }
                 } else {
-                    console.log(`🕐 [EVOLUCAO] Cache expirado (${diffHours.toFixed(2)}h) — buscando dados frescos`)
+                    console.log(`🕐 [EVOLUCAO] Cache forçosamente expirado (${diffHours.toFixed(2)}h) — buscando dados frescos`)
                 }
             } else {
                 console.log(`💾 [EVOLUCAO] Nenhum cache encontrado para userId=${userId} periodo=${periodo}`)
