@@ -313,7 +313,7 @@ export const DashboardPage = () => {
                     ) : (
                         // ... rest of chart ...
                         <ResponsiveContainer width="100%" height={220}>
-                            <AreaChart data={evolucao} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                            <AreaChart data={evolucao} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} style={{ outline: 'none' }}>
                                 <defs>
                                     <linearGradient id="gradGreen" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#00e88f" stopOpacity={0.3} />
@@ -335,7 +335,14 @@ export const DashboardPage = () => {
                                     width={60}
                                 />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0e1117', border: '1px solid #1e2535', borderRadius: '12px', color: '#e8eaf0' }}
+                                    contentStyle={{
+                                        backgroundColor: '#1e2438',
+                                        border: '1px solid #2a3050',
+                                        borderRadius: '8px',
+                                        color: '#e8eaf2'
+                                    }}
+                                    itemStyle={{ color: '#e8eaf2' }}
+                                    labelStyle={{ color: '#e8eaf2' }}
                                     formatter={formatTooltip}
                                 />
                                 <Area type="monotone" dataKey="patrimonio" stroke="#00e88f" strokeWidth={2} fill="url(#gradGreen)" />
@@ -447,14 +454,21 @@ export const DashboardPage = () => {
                 <div className="card">
                     <h2 className="text-text-primary font-semibold mb-4">Composição</h2>
                     <ResponsiveContainer width="100%" height={180}>
-                        <PieChart>
+                        <PieChart style={{ outline: 'none' }}>
                             <Pie data={composicao} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" strokeWidth={0}>
                                 {composicao.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#0e1117', border: '1px solid #1e2535', borderRadius: '12px', color: '#e8eaf0' }}
+                                contentStyle={{
+                                    backgroundColor: '#1e2438',
+                                    border: '1px solid #2a3050',
+                                    borderRadius: '8px',
+                                    color: '#e8eaf2'
+                                }}
+                                itemStyle={{ color: '#e8eaf2' }}
+                                labelStyle={{ color: '#e8eaf2' }}
                                 formatter={(v: any) => [formatMoeda(Number(v) || 0), '']}
                             />
                         </PieChart>

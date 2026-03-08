@@ -195,11 +195,19 @@ export const CarteiraPage = () => {
                     </div>
                     <div className="lg:col-span-3">
                         <ResponsiveContainer width="100%" height={220}>
-                            <BarChart data={projecaoGrafico} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                            <BarChart data={projecaoGrafico} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} style={{ outline: 'none' }}>
                                 <XAxis dataKey="mes" tick={{ fill: '#52607a', fontSize: 10 }} tickFormatter={v => `${v}m`} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fill: '#52607a', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${((v ?? 0) / 1000).toFixed(0)}k`} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0e1117', border: '1px solid #1e2535', borderRadius: '12px', color: '#e8eaf0' }}
+                                    contentStyle={{
+                                        backgroundColor: '#1e2438',
+                                        border: '1px solid #2a3050',
+                                        borderRadius: '8px',
+                                        color: '#e8eaf2'
+                                    }}
+                                    itemStyle={{ color: '#e8eaf2' }}
+                                    labelStyle={{ color: '#e8eaf2' }}
+                                    cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
                                     formatter={(v: number | undefined) => [formatMoeda(Number(v) || 0), '']}
                                 />
                                 <Bar dataKey="totalInvestido" fill="#1e2535" radius={[4, 4, 0, 0]} name="Total Investido" />
