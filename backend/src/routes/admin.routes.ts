@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { executarAtualizacaoMercado } from '../cron/market-update.cron'
+import { cacheService } from '../services/cache.service'
 
 const adminRoutes = Router()
 
@@ -15,16 +16,23 @@ adminRoutes.use((req, res, next) => {
 // Endpoint POST /api/admin/atualizar
 adminRoutes.post('/atualizar', async (req, res) => {
     try {
-        // Dispara a rotina de forma assíncrona ou aguarda o resultado.
-        // Como pode demorar, podemos responder logo e rodar em background, ou aguardar.
-        // Aguardaremos para o teste ficar mais simples pro frontend.
         const resultado = await executarAtualizacaoMercado()
-
         if (resultado.success) {
             return res.json(resultado)
         } else {
             return res.status(500).json(resultado)
         }
+    } catch (error: any) {
+        return res.status(500).json({ success: false, error: error.message })
+    }
+})
+
+// Endpoint DELETE /api/admin/limpar-cache
+adminRoutes.delete('/limpar-cache', (req, res) => {
+    try {
+        cacheService.flush()
+        console.log('🧹 [ADMIN] Cache global limpo via dashboard/api')
+        return res.json({ success: true, message: 'Cache em memória limpo com sucesso' })
     } catch (error: any) {
         return res.status(500).json({ success: false, error: error.message })
     }

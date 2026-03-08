@@ -182,7 +182,8 @@ export const brapiService = {
     },
 
     async buscarHistorico(ticker: string, periodo = '1mo') {
-        return cacheService.getOrSet(`brapi_history_${ticker}_${periodo}`, async () => {
+        const cacheKey = `brapi_history_${ticker}_${periodo}`
+        return cacheService.getOrSet(cacheKey, async () => {
             const token = process.env.BRAPI_TOKEN
             if (!token) return []
             try {
@@ -190,7 +191,22 @@ export const brapiService = {
                     params: { token, range: periodo, interval: '1d', history: true }
                 })
                 return data.results?.[0]?.historicalDataPrice ?? []
-            } catch {
+            } catch (error: any) {
+                // FALLBACK: Se der erro (ex: 400 Bad Request por limite de plano em FIIs)
+                // e o range for longo (6mo ou 1y), tentamos o máximo do plano free (3mo)
+                if (error.response?.status === 400 && (periodo === '6mo' || periodo === '1y')) {
+                    console.warn(`⚠️ [BRAPI] ${ticker}: Range "${periodo}" negado. Tentando fallback para "3mo"...`)
+                    try {
+                        const { data: fallbackData } = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
+                            params: { token, range: '3mo', interval: '1d', history: true }
+                        })
+                        console.log(`✅ [BRAPI] ${ticker}: Fallback "3mo" funcionou.`)
+                        return fallbackData.results?.[0]?.historicalDataPrice ?? []
+                    } catch (fallbackErr: any) {
+                        console.error(`❌ [BRAPI] ${ticker}: Erro no fallback "3mo":`, fallbackErr.message)
+                        return []
+                    }
+                }
                 return []
             }
         })
