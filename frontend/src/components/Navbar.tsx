@@ -1,9 +1,10 @@
-import { useState, Fragment } from 'react'
-import { Search, Bell, ChevronDown, Menu as MenuIcon, LogOut } from 'lucide-react'
+import { Fragment } from 'react'
+import { Bell, ChevronDown, Menu as MenuIcon, LogOut } from 'lucide-react'
 import { Menu, Transition } from '@headlessui/react'
 import { useUserStore } from '@/store/user.store'
 import { logout as supabaseLogout } from '@/services/supabase'
 import { useNavigate } from 'react-router-dom'
+import { GlobalSearch } from '@/components/GlobalSearch'
 
 interface NavbarProps {
     onMenuToggle?: () => void
@@ -11,7 +12,6 @@ interface NavbarProps {
 
 export const Navbar = ({ onMenuToggle }: NavbarProps) => {
     const { usuario, logout: storeLogout } = useUserStore()
-    const [busca, setBusca] = useState('')
     const navigate = useNavigate()
 
     const handleLogout = async () => {
@@ -28,15 +28,7 @@ export const Navbar = ({ onMenuToggle }: NavbarProps) => {
             </button>
 
             {/* Search */}
-            <div className="relative flex-1 max-w-md">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                <input
-                    value={busca}
-                    onChange={e => setBusca(e.target.value)}
-                    placeholder="Buscar ativo, ticker, FII..."
-                    className="input pl-9 h-9 text-sm"
-                />
-            </div>
+            <GlobalSearch />
 
             <div className="flex items-center gap-3 ml-auto">
                 {/* Notifications */}
