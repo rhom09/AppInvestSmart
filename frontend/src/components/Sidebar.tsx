@@ -2,16 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Briefcase, TrendingUp, Building2, BarChart2, BookOpen, Settings, Lock } from 'lucide-react'
 import { useUserStore } from '@/store/user.store'
 
-const NAV_ITEMS = [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/carteira', label: 'Carteira', icon: Briefcase },
-    { to: '/acoes', label: 'Ações', icon: TrendingUp },
-    { to: '/fiis', label: 'FIIs', icon: Building2 },
-    { to: '/etfs', label: 'ETFs', icon: BarChart2 },
-    { to: '/renda-fixa', label: 'Renda Fixa', icon: Lock },
-    { to: '/aprender', label: 'Aprender', icon: BookOpen },
-    { to: '/configuracoes', label: 'Configurações', icon: Settings },
-]
+// Movemos os itens para dentro do componente para reagir ao state do usuário
 
 interface SidebarProps {
     isOpen?: boolean
@@ -20,6 +11,17 @@ interface SidebarProps {
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     const { usuario } = useUserStore()
+
+    const navItems = [
+        { to: '/dashboard', label: usuario ? 'Dashboard' : 'Visão Geral', icon: LayoutDashboard },
+        { to: '/carteira', label: 'Carteira', icon: Briefcase, locked: !usuario },
+        { to: '/acoes', label: 'Ações', icon: TrendingUp },
+        { to: '/fiis', label: 'FIIs', icon: Building2 },
+        { to: '/etfs', label: 'ETFs', icon: BarChart2 },
+        { to: '/renda-fixa', label: 'Renda Fixa', icon: Lock },
+        { to: '/aprender', label: 'Aprender', icon: BookOpen },
+        { to: '/configuracoes', label: 'Configurações', icon: Settings },
+    ]
 
     return (
         <>
@@ -48,7 +50,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 {/* Navigation */}
                 <nav className="flex-1 px-3 py-4 overflow-y-auto">
                     <div className="space-y-1">
-                        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+                        {navItems.map(({ to, label, icon: Icon, locked }) => (
                             <NavLink
                                 key={to}
                                 to={to}
@@ -61,6 +63,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                             >
                                 <Icon size={18} />
                                 {label}
+                                {locked && <Lock size={12} className="ml-auto opacity-50" />}
                             </NavLink>
                         ))}
                     </div>

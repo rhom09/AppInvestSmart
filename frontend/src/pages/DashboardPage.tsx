@@ -3,7 +3,7 @@ import { AreaChart, Area, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, XAx
 import { StatCard } from '@/components/StatCard'
 import { SpotlightAcao } from '@/components/SpotlightAcao'
 import { TabelaIndicadas } from '@/components/TabelaIndicadas'
-import { Wallet, TrendingUp, Star, DollarSign, X, ExternalLink, Radio, Layout } from 'lucide-react'
+import { Wallet, TrendingUp, Star, DollarSign, X, ExternalLink, Radio, Layout, Lock } from 'lucide-react'
 import { useCarteiraResumo } from '@/hooks/useCarteiraResumo'
 import { useAcoes } from '@/hooks/useAcoes'
 import { useFIIs } from '@/hooks/useFIIs'
@@ -17,6 +17,27 @@ import type { Ativo } from '@/types'
 const COLORS = ['#00e88f', '#00b8ff', '#f0a500', '#ff4d6d', '#a78bfa']
 
 const formatTooltip = (value: any) => [formatMoeda(Number(value) || 0), 'Patrimônio']
+
+const fakeEvolucao = [
+    { label: '01/01', patrimonio: 10000 },
+    { label: '01/02', patrimonio: 10500 },
+    { label: '01/03', patrimonio: 10200 },
+    { label: '01/04', patrimonio: 11000 },
+    { label: '01/05', patrimonio: 11800 },
+    { label: '01/06', patrimonio: 12500 }
+];
+
+const LockedCard = ({ titulo, cor, icon }: any) => {
+    return (
+        <div className="relative opacity-60 cursor-not-allowed" title="Faça login para ver sua carteira">
+            <StatCard titulo={titulo} valor="R$ ****" subvalor="-" cor={cor as any} icon={icon} />
+            <div className="absolute top-3 right-3 md:top-3 md:right-14 opacity-50">
+                <Lock size={14} className="text-text-muted" />
+            </div>
+            <div className="absolute inset-0 z-10" />
+        </div>
+    )
+}
 
 // ─── Componentes Auxiliares ──────────────────────────────────
 const ChartSkeleton = () => (
@@ -225,9 +246,11 @@ export const DashboardPage = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary">
-                        Bem-vindo, {usuario?.nome.split(' ')[0]} 👋
+                        {usuario ? `Bem-vindo, ${usuario.nome.split(' ')[0]} 👋` : 'Visão Geral'}
                     </h1>
-                    <p className="text-text-secondary text-sm mt-1">Aqui está o resumo dos seus investimentos hoje.</p>
+                    <p className="text-text-secondary text-sm mt-1">
+                        {usuario ? 'Aqui está o resumo dos seus investimentos hoje.' : 'Explore o mercado e veja o que você pode montar.'}
+                    </p>
                 </div>
             </div>
 
@@ -235,6 +258,13 @@ export const DashboardPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {loadingCarteira ? (
                     Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
+                ) : !usuario ? (
+                    <>
+                        <LockedCard titulo="Patrimônio Total" icon={<Wallet size={18} />} cor="green" />
+                        <LockedCard titulo="Rentabilidade Total" icon={<TrendingUp size={18} />} cor="red" />
+                        <LockedCard titulo="Rentabilidade Mês" icon={<TrendingUp size={18} />} cor="blue" />
+                        <LockedCard titulo="Dividendos Mês" icon={<DollarSign size={18} />} cor="yellow" />
+                    </>
                 ) : (
                     <>
                         <StatCard
@@ -303,7 +333,29 @@ export const DashboardPage = () => {
                         </div>
                     </div>
 
-                    {isLoadingEvolucao ? (
+                    {!usuario ? (
+                        <div className="relative">
+                            <ResponsiveContainer width="100%" height={220} className="opacity-30 blur-[2px] pointer-events-none">
+                                <AreaChart data={fakeEvolucao} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} style={{ outline: 'none' }}>
+                                    <defs>
+                                        <linearGradient id="gradFake" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#00e88f" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#00e88f" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="label" tick={{ fill: '#52607a', fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={30} />
+                                    <YAxis tick={{ fill: '#52607a', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => formatMoeda(v).replace('R$', '').trim()} width={60} />
+                                    <Area type="monotone" dataKey="patrimonio" stroke="#00e88f" strokeWidth={2} fill="url(#gradFake)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-10 p-4">
+                                <div className="bg-bg-elevated/90 p-3 rounded-full shadow-lg border border-surface-border mb-3 backdrop-blur-sm">
+                                    <Lock size={20} className="text-text-primary" />
+                                </div>
+                                <h3 className="text-text-primary font-bold text-sm">Faça login para ver a evolução da sua carteira</h3>
+                            </div>
+                        </div>
+                    ) : isLoadingEvolucao ? (
                         <ChartSkeleton />
                     ) : evolucao.length === 0 ? (
                         <div className="h-[220px] flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-surface-border rounded-2xl bg-bg-elevated/30">
