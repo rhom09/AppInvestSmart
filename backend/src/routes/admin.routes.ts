@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { executarAtualizacaoMercado } from '../cron/market-update.cron'
+import { executarAtualizacaoMercado, atualizarCotacoesCache } from '../cron/market-update.cron'
 import { cacheService } from '../services/cache.service'
 
 const adminRoutes = Router()
@@ -13,7 +13,7 @@ adminRoutes.use((req, res, next) => {
     next()
 })
 
-// Endpoint POST /api/admin/atualizar
+// POST /api/admin/atualizar - atualizar scores e indicados
 adminRoutes.post('/atualizar', async (req, res) => {
     try {
         const resultado = await executarAtualizacaoMercado()
@@ -27,7 +27,22 @@ adminRoutes.post('/atualizar', async (req, res) => {
     }
 })
 
-// Endpoint DELETE /api/admin/limpar-cache
+// POST /api/admin/refresh-cotacoes - popular/atualizar cotacoes_cache no Supabase
+adminRoutes.post('/refresh-cotacoes', async (req, res) => {
+    try {
+        console.log('🔄 [ADMIN] Refresh manual de cotações disparado...')
+        const resultado = await atualizarCotacoesCache()
+        if (resultado.success) {
+            return res.json(resultado)
+        } else {
+            return res.status(500).json(resultado)
+        }
+    } catch (error: any) {
+        return res.status(500).json({ success: false, error: error.message })
+    }
+})
+
+// DELETE /api/admin/limpar-cache - limpar cache em memória
 adminRoutes.delete('/limpar-cache', (req, res) => {
     try {
         cacheService.flush()

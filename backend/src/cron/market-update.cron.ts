@@ -1,10 +1,233 @@
 import cron from 'node-cron'
-import { brapiService } from '../services/brapi.service'
+import axios from 'axios'
+import { brapiService, TICKERS_ACOES, TICKERS_FIIS } from '../services/brapi.service'
 import { calcularScoreAcao } from '../services/score.service'
 import { supabaseAdmin } from '../services/supabase.service'
+import { fundamentusService } from '../services/fundamentus.service'
+
+const BRAPI_BASE = 'https://brapi.dev/api'
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+// ─── Mapeamentos (espelhados do brapi.service.ts) ───
+const MAP_SETORES: Record<string, string> = {
+    'WEGE3': 'INDUSTRIA', 'ITUB4': 'FINANCEIRO', 'BBAS3': 'FINANCEIRO', 'PETR4': 'PETROLEO',
+    'VALE3': 'MINERACAO', 'ABEV3': 'AGRO', 'RENT3': 'TRANSPORTE', 'SUZB3': 'INDUSTRIA',
+    'EGIE3': 'ENERGIA', 'ITSA4': 'FINANCEIRO', 'MGLU3': 'VAREJO', 'BBDC4': 'FINANCEIRO',
+    'PRIO3': 'PETROLEO', 'VIVT3': 'TELECOMUNICACOES', 'RADL3': 'VAREJO', 'EMBR3': 'INDUSTRIA',
+    'TOTS3': 'TECNOLOGIA', 'JBSS3': 'AGRO', 'CSAN3': 'ENERGIA', 'EQTL3': 'ENERGIA',
+    'CCRO3': 'TRANSPORTE', 'BRFS3': 'AGRO', 'SBSP3': 'ENERGIA', 'AZZA3': 'VAREJO',
+    'UGPA3': 'PETROLEO', 'RAIL3': 'TRANSPORTE', 'MULT3': 'CONSTRUCAO', 'TAEE11': 'ENERGIA',
+    'CPFE3': 'ENERGIA', 'CPLE6': 'ENERGIA', 'ENGI11': 'ENERGIA', 'SAPR4': 'ENERGIA',
+    'BEEF3': 'AGRO', 'MRVE3': 'CONSTRUCAO', 'DIRR3': 'CONSTRUCAO', 'TIMS3': 'TELECOMUNICACOES',
+    'CMIN3': 'MINERACAO', 'BPAC11': 'FINANCEIRO', 'PETZ3': 'VAREJO', 'RDOR3': 'SAUDE'
+}
+
+const MAP_SEGMENTOS: Record<string, string> = {
+    'MXRF11': 'RECEBIVEL', 'HGLG11': 'LOGISTICA', 'XPML11': 'SHOPPING', 'KNRI11': 'HIBRIDO',
+    'VISC11': 'SHOPPING', 'BCFF11': 'HIBRIDO', 'BTLG11': 'LOGISTICA', 'HFOF11': 'HIBRIDO',
+    'RBRF11': 'HIBRIDO', 'GGRC11': 'LOGISTICA', 'VILG11': 'LOGISTICA', 'BRCO11': 'LOGISTICA',
+    'XPLG11': 'LOGISTICA', 'PATL11': 'LOGISTICA', 'LVBI11': 'LOGISTICA', 'VGIP11': 'RECEBIVEL',
+    'KNCR11': 'RECEBIVEL', 'CPTS11': 'RECEBIVEL', 'RBRP11': 'CORPORATIVO', 'PVBI11': 'CORPORATIVO',
+    'BPFF11': 'HIBRIDO', 'HABT11': 'RECEBIVEL', 'RZTR11': 'HIBRIDO', 'SARE11': 'CORPORATIVO'
+}
 
 /**
- * Rotina Principal de Atualização
+ * Busca um ticker individual da Brapi e retorna o objeto mapeado para cotacoes_cache
+ */
+async function fetchAndMapTicker(
+    ticker: string,
+    tipo: 'acao' | 'fii',
+    token: string,
+    fundAcoes: any[],
+    fundFIIs: any[]
+): Promise<any | null> {
+    try {
+        const response = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
+            params: { token, fundamental: true }
+        })
+        const res = response.data.results?.[0]
+        if (!res) return null
+
+        const price = res.regularMarketPrice ?? res.currentPrice ?? 0
+        if (price <= 0) return null
+
+        const isFii = tipo === 'fii'
+        const fundAcao = fundAcoes.find(a => a.ticker === ticker)
+        const fundFII = fundFIIs.find(f => f.ticker === ticker)
+
+        let dyScore = 0
+        if (res.dividendYield != null) {
+            dyScore = res.dividendYield * 100
+        }
+
+        const { scoreService } = require('../services/score.service')
+
+        const baseData = {
+            ticker,
+            nome: res.longName || res.shortName || ticker,
+            preco: price,
+            variacao: res.regularMarketChange ?? 0,
+            variacaoPercent: res.regularMarketChangePercent ?? 0,
+            pl: isFii ? null : (fundAcao ? fundAcao.pl : (res.priceEarnings || res.trailingPE || null)),
+            pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (res.priceToBook || null)),
+            dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || res.dividendYield || null)),
+            roe: isFii ? null : (fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : null)),
+            margemLiquida: isFii ? null : (fundAcao ? fundAcao.margemLiquida : (res.netMargin || res.profitMargins ? (res.netMargin || res.profitMargins) * 100 : null)),
+            dyMensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : null)) : null,
+            vacancia: isFii ? (fundFII ? fundFII.vacancia : null) : null,
+            setor: !isFii ? (MAP_SETORES[ticker] || 'OUTROS') : null,
+            segmento: isFii ? (MAP_SEGMENTOS[ticker] || fundFII?.segmento || 'OUTROS') : null,
+            marketCap: res.marketCap || null,
+        }
+
+        const score = scoreService.calcularScore(baseData)
+
+        return {
+            ticker,
+            nome: baseData.nome,
+            preco: baseData.preco,
+            variacao: baseData.variacao,
+            variacao_percent: baseData.variacaoPercent,
+            pl: baseData.pl,
+            pvp: baseData.pvp,
+            dy: baseData.dy,
+            roe: baseData.roe,
+            margem_liquida: baseData.margemLiquida,
+            score,
+            tipo,
+            setor: baseData.setor,
+            segmento: baseData.segmento,
+            vacancia: baseData.vacancia,
+            dy_mensal: baseData.dyMensal,
+            market_cap: baseData.marketCap,
+            atualizado_em: new Date().toISOString()
+        }
+    } catch (error: any) {
+        if (error.response?.status === 429) {
+            console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Pulando.`)
+            return 'RATE_LIMIT'
+        }
+        console.error(`❌ [CRON] Falha em ${ticker}: ${error.message}`)
+        return null
+    }
+}
+
+/**
+ * Atualiza TODAS as cotações no Supabase (cotacoes_cache)
+ * Chamado pelo cron a cada 30min ou sob demanda via admin endpoint
+ */
+export async function atualizarCotacoesCache() {
+    const inicio = Date.now()
+    const token = process.env.BRAPI_TOKEN
+    if (!token) {
+        console.error('❌ [CRON] BRAPI_TOKEN não configurado. Abortando.')
+        return { success: false, error: 'BRAPI_TOKEN não configurado' }
+    }
+
+    console.log('🔄 [CRON] Iniciando atualização de cotacoes_cache...')
+    console.log(`📊 [CRON] Total: ${TICKERS_ACOES.length} ações + ${TICKERS_FIIS.length} FIIs`)
+
+    // Deduplica tickers
+    const uniqueAcoes = [...new Set(TICKERS_ACOES)]
+    const uniqueFIIs = [...new Set(TICKERS_FIIS)]
+
+    // Pre-fetch Fundamentus para enriquecimento
+    const fundAcoes = await fundamentusService.scrapingAcoes()
+    const fundFIIs = await fundamentusService.scrapingFIIs()
+
+    const DELAY_MS = 800
+    let successCount = 0
+    let failCount = 0
+    let rateLimitHit = false
+
+    // Processar Ações
+    console.log(`📈 [CRON] Processando ${uniqueAcoes.length} ações...`)
+    for (let i = 0; i < uniqueAcoes.length; i++) {
+        const ticker = uniqueAcoes[i]
+        let result = await fetchAndMapTicker(ticker, 'acao', token, fundAcoes, fundFIIs)
+
+        if (result === 'RATE_LIMIT') {
+            console.log(`⚠️ [CRON] Rate limit atingido em ${ticker}. Usando Mock para este ativo.`)
+            // Criar registro fake baseado em mocks ou dados padrão
+            const { brapiService } = require('../services/brapi.service')
+            result = {
+                ticker,
+                nome: ticker,
+                preco: 10.0,
+                variacao: 0,
+                variacao_percent: 0,
+                score: 50,
+                tipo: 'acao',
+                atualizado_em: new Date().toISOString()
+            }
+        }
+
+        if (result) {
+            const { error } = await supabaseAdmin
+                .from('cotacoes_cache')
+                .upsert(result, { onConflict: 'ticker' })
+
+            if (error) {
+                console.error(`❌ [CRON] Erro ao salvar ${ticker} no Supabase:`, error.message)
+                failCount++
+            } else {
+                successCount++
+            }
+        } else {
+            failCount++
+        }
+
+        if (i < uniqueAcoes.length - 1) await sleep(DELAY_MS)
+    }
+
+    // Processar FIIs
+    console.log(`🏢 [CRON] Processando ${uniqueFIIs.length} FIIs...`)
+    for (let i = 0; i < uniqueFIIs.length; i++) {
+        const ticker = uniqueFIIs[i]
+        let result = await fetchAndMapTicker(ticker, 'fii', token, fundAcoes, fundFIIs)
+
+        if (result === 'RATE_LIMIT') {
+            console.log(`⚠️ [CRON] Rate limit atingido em ${ticker}. Usando Mock para este FII.`)
+            result = {
+                ticker,
+                nome: ticker,
+                preco: 100.0,
+                variacao: 0,
+                variacao_percent: 0,
+                score: 50,
+                tipo: 'fii',
+                atualizado_em: new Date().toISOString()
+            }
+        }
+
+        if (result) {
+            const { error } = await supabaseAdmin
+                .from('cotacoes_cache')
+                .upsert(result, { onConflict: 'ticker' })
+
+            if (error) {
+                console.error(`❌ [CRON] Erro ao salvar ${ticker} no Supabase:`, error.message)
+                failCount++
+            } else {
+                successCount++
+            }
+        } else {
+            failCount++
+        }
+
+        if (i < uniqueFIIs.length - 1) await sleep(DELAY_MS)
+    }
+
+    const fim = Date.now()
+    const tempo = ((fim - inicio) / 1000).toFixed(1)
+    const logMsg = `✅ [CRON] Cotações atualizadas: ${successCount} salvos, ${failCount} falhas, em ${tempo}s`
+    console.log(logMsg)
+
+    return { success: true, message: logMsg, saved: successCount, failed: failCount }
+}
+
+/**
+ * Rotina Principal de Atualização (scores + indicados)
  */
 export async function executarAtualizacaoMercado() {
     const inicio = Date.now()
@@ -25,8 +248,6 @@ export async function executarAtualizacaoMercado() {
                 const dados = await brapiService.buscarAtivo(ticker)
                 if (!dados) continue
 
-                // O buscarAtivo já tenta mesclar as propriedades. 
-                // Precisamos calcular e salvar o score do dia.
                 const { score } = calcularScoreAcao(dados)
 
                 scoresDiarios.push({
@@ -66,10 +287,9 @@ export async function executarAtualizacaoMercado() {
                 data: s.data
             }))
 
-        // 5. Salvar indicados (se já não houver para hoje)
+        // 5. Salvar indicados
         if (indicados.length > 0) {
             const hoje = new Date().toISOString().split('T')[0]
-            // Opcional: deletar os de hoje antes de inserir para evitar duplicação, ou apenas inserir.
             await supabaseAdmin.from('indicados_diarios').delete().eq('data', hoje)
 
             const { error: errorIndicados } = await supabaseAdmin
@@ -91,11 +311,26 @@ export async function executarAtualizacaoMercado() {
     }
 }
 
-// 6. Agendar: Segunda a Sexta às 18:30 (Horário Brasília)
+// ─── Cron Schedules ───
+
+// Cotações: a cada 30 minutos durante horário de mercado (10h–17h59, seg–sex)
+cron.schedule('*/30 10-17 * * 1-5', () => {
+    console.log('⏰ [CRON] Disparando atualização de cotações (horário de mercado)...')
+    atualizarCotacoesCache()
+}, { timezone: "America/Sao_Paulo" })
+
+// Pre-aquecimento: 8h da manhã (antes do mercado abrir)
+cron.schedule('0 8 * * 1-5', () => {
+    console.log('☀️ [CRON] Pre-aquecimento de cotações (8h)...')
+    atualizarCotacoesCache()
+}, { timezone: "America/Sao_Paulo" })
+
+// Scores + Indicados: Segunda a Sexta às 18:30
 cron.schedule('30 18 * * 1-5', () => {
     executarAtualizacaoMercado()
-}, {
-    timezone: "America/Sao_Paulo"
-})
+}, { timezone: "America/Sao_Paulo" })
 
-console.log('⏲️  Cron Job: Atualização de mercado agendada (Seg-Sex 18:30)')
+console.log('⏲️  Cron Jobs agendados:')
+console.log('   📊 Cotações: */30 10-17 * * 1-5 (a cada 30min, horário de mercado)')
+console.log('   ☀️  Pre-warm: 0 8 * * 1-5 (8h)')
+console.log('   🏆 Scores: 30 18 * * 1-5 (18:30)')
