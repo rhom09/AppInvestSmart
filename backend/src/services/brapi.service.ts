@@ -18,6 +18,8 @@ const MOCK_ATIVOS: any[] = [
     { ticker: 'RENT3', nome: 'Localiza ON', preco: 48.90, variacao: 0.60, variacaoPercent: 1.24, score: 71, pl: 14.2, pvp: 3.1, dy: 2.1, roe: 18.4, margemLiquida: 9.8 },
     { ticker: 'ABEV3', nome: 'Ambev ON', preco: 12.40, variacao: -0.20, variacaoPercent: -1.59, score: 61, pl: 16.8, pvp: 2.9, dy: 5.2, roe: 15.3, margemLiquida: 22.4 },
     { ticker: 'SUZB3', nome: 'Suzano ON', preco: 52.30, variacao: 1.15, variacaoPercent: 2.25, score: 74, pl: 6.8, pvp: 1.6, dy: 4.2, roe: 22.8, margemLiquida: 38.5 },
+    { ticker: 'MXRF11', nome: 'Maxi Renda FII', preco: 10.50, variacao: 0.02, variacaoPercent: 0.19, score: 85, pvp: 1.05, dy: 12.1, vacancia: 0, dyMensal: 1.01 },
+    { ticker: 'HGLG11', nome: 'CGHG Logística FII', preco: 165.30, variacao: -0.45, variacaoPercent: -0.27, score: 82, pvp: 1.12, dy: 8.5, vacancia: 3.2, dyMensal: 0.71 },
 ]
 
 export const TICKERS_ACOES = [
@@ -140,7 +142,7 @@ export const brapiService = {
 
                 // Mapear propriedades do BRAPI para o padrão esperado pelo nosso score.service
                 const mapFundamentals = (res: any, fundAcoes: any[], fundFIIs: any[]) => {
-                    const price = res.regularMarketPrice || 0
+                    const price = res.regularMarketPrice ?? res.currentPrice ?? 0
 
                     // Cálculo aproximado de DY (12m)
                     let dyScore = 0
@@ -291,7 +293,7 @@ export const brapiService = {
 
         return results.map((res: any) => {
             const ticker = res.symbol
-            const price = res.regularMarketPrice || 0
+            const price = res.regularMarketPrice ?? res.currentPrice ?? 0
             const mockInfo = MOCK_ATIVOS.find(m => m.ticker === ticker)
             const fundAcao = fundAcoes.find(a => a.ticker === ticker)
             const fundFII = fundFIIs.find(f => f.ticker === ticker)
@@ -310,17 +312,17 @@ export const brapiService = {
                 ticker,
                 nome: res.longName || res.shortName || ticker,
                 preco: price,
-                variacao: res.regularMarketChange || 0,
-                variacaoPercent: res.regularMarketChangePercent || 0,
+                variacao: res.regularMarketChange ?? 0,
+                variacaoPercent: res.regularMarketChangePercent ?? 0,
                 marketCap: res.marketCap,
                 setor,
                 segmento,
                 // Metrics
-                pl: isFii ? undefined : (fundAcao ? fundAcao.pl : (res.priceEarnings || mockInfo?.pl || 0)),
-                pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (mockInfo?.pvp || null)),
-                dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || mockInfo?.dy || 0)),
+                pl: isFii ? undefined : (fundAcao ? fundAcao.pl : (res.priceEarnings || res.trailingPE || mockInfo?.pl || 0)),
+                pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (res.priceToBook || mockInfo?.pvp || null)),
+                dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || res.dividendYield || mockInfo?.dy || 0)),
                 roe: isFii ? undefined : (fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : (mockInfo?.roe || 0))),
-                margemLiquida: isFii ? undefined : (fundAcao ? fundAcao.margemLiquida : (res.netMargin ? res.netMargin * 100 : (mockInfo?.margemLiquida || 0))),
+                margemLiquida: isFii ? undefined : (fundAcao ? fundAcao.margemLiquida : (res.netMargin || res.profitMargins ? (res.netMargin || res.profitMargins) * 100 : (mockInfo?.margemLiquida || 0))),
                 dyMensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : 0)) : undefined,
                 vacancia: isFii ? (fundFII ? fundFII.vacancia : undefined) : undefined,
             }
@@ -330,7 +332,7 @@ export const brapiService = {
             const score = mockInfo?.score || scoreService.calcularScore(baseData)
 
             return { ...baseData, score }
-        })
+        }).filter(item => item.preco > 0)
     },
 
     async buscarIndices() {
