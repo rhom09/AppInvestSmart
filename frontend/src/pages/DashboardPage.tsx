@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AreaChart, Area, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { MarketBar } from '@/components/MarketBar'
+import { MarketStatusBadge } from '@/components/MarketStatusBadge'
 import { StatCard } from '@/components/StatCard'
 import { SpotlightAcao } from '@/components/SpotlightAcao'
 import { TabelaIndicadas } from '@/components/TabelaIndicadas'
@@ -294,13 +296,20 @@ export const DashboardPage = () => {
 
     return (
         <div className="space-y-6 animate-fade-in">
+            {/* Market Bar (Only for Logged Users) */}
+            {usuario && (
+                <div className="-mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-6">
+                    <MarketBar />
+                </div>
+            )}
+
             {/* Detalhe Panel */}
             {selectedAtivo && (
                 <DetalhePanel ativo={selectedAtivo} onClose={() => setSelectedAtivo(null)} />
             )}
 
             {/* Welcome header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary">
                         {usuario ? `Bem-vindo, ${usuario.nome.split(' ')[0]} 👋` : 'Visão Geral'}
@@ -309,6 +318,9 @@ export const DashboardPage = () => {
                         {usuario ? 'Aqui está o resumo dos seus investimentos hoje.' : 'Explore o mercado e veja o que você pode montar.'}
                     </p>
                 </div>
+
+                {/* Market Status (Only for Logged Users) */}
+                {usuario && <MarketStatusBadge />}
             </div>
 
             {/* KPI Cards ou Índices de Mercado */}
