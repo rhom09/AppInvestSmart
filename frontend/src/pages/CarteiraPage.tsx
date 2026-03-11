@@ -26,11 +26,7 @@ export const CarteiraPage = () => {
     const projecao = calcularJurosCompostos({ aporteMensal: aporte, taxaMensal: taxa, meses, patrimonioInicial: carteira.totalAtual })
     const projecaoGrafico = projecao.filter((_, i) => i % 3 === 0 || i === projecao.length - 1)
 
-    const handleGoogleLogin = async () => {
-        alert('🔄 Botão de Login (Carteira) clicado!')
-        console.error('🔄 [AUTH] Clicou no botão de login da Carteira')
-        await loginComGoogle()
-    }
+    const handleGoogleLogin = () => loginComGoogle()
 
     if (!usuario) {
         return (

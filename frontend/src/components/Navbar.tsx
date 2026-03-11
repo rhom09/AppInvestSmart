@@ -20,11 +20,7 @@ export const Navbar = ({ onMenuToggle }: NavbarProps) => {
         navigate('/dashboard')
     }
 
-    const handleGoogleLogin = async () => {
-        alert('🔄 Botão de Login clicado!')
-        console.error('🔄 [AUTH] Clicou no botão de login da Navbar')
-        await loginComGoogle()
-    }
+    const handleGoogleLogin = () => loginComGoogle()
 
     return (
         <header className="h-16 bg-bg-card border-b border-surface-border flex items-center px-4 md:px-6 gap-4 sticky top-0 z-20 w-full">

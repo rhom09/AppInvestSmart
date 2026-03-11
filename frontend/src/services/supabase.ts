@@ -12,7 +12,6 @@ export const supabase = createClient(supabaseUrl ?? '', supabaseKey ?? '')
 
 /** Inicia o fluxo OAuth com o Google */
 export const loginComGoogle = async () => {
-    console.error('🔄 [AUTH] Iniciando loginComGoogle() em supabase.ts...')
     try {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -21,14 +20,12 @@ export const loginComGoogle = async () => {
             },
         })
         if (error) {
-            console.error('❌ [AUTH] Erro no signInWithOAuth:', error.message)
-            alert(`Erro Supabase: ${error.message}`)
+            console.error('Erro no login via Supabase:', error.message)
             return { error }
         }
         return { error: null }
     } catch (err: any) {
-        console.error('❌ [AUTH] Falha crítica no login:', err)
-        alert(`Falha crítica: ${err.message || 'Verifique o console'}`)
+        console.error('Falha crítica no login:', err)
         return { error: err }
     }
 }
