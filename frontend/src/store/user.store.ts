@@ -25,8 +25,8 @@ interface UserState {
 export const useUserStore = create<UserState>()(
     persist(
         (set) => ({
-            usuario: USUARIO_MOCK,
-            isAuthenticated: true,
+            usuario: null,
+            isAuthenticated: false,
 
             login: async (_email: string, _senha: string) => {
                 await new Promise(r => setTimeout(r, 800))

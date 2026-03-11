@@ -15,8 +15,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route element={<Layout />}>
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/acoes" element={<AcoesPage />} />
           <Route path="/fiis" element={<FIIsPage />} />

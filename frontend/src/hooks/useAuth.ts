@@ -15,21 +15,29 @@ export const useAuth = (): AuthState => {
     const { setFromSupabase } = useUserStore()
 
     useEffect(() => {
+        console.error('🔍 [AUTH] useAuth: Inicializando listener...')
         // Initialize from existing session
-        supabase.auth.getSession().then(({ data }) => {
+        supabase.auth.getSession().then(({ data, error }) => {
+            if (error) console.error('❌ [AUTH] getSession error:', error)
             const sessionUser = data.session?.user ?? null
-            setUser(sessionUser)
+            console.error('🔍 [AUTH] getSession result:', sessionUser?.email || 'Nenhum usuário')
+
             if (sessionUser) {
                 setFromSupabase(sessionUser)
+                setUser(sessionUser)
             } else {
                 useUserStore.getState().logout()
+                setUser(null)
             }
             setLoading(false)
         })
 
         // Listen for auth state changes (login / logout / token refresh)
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+            console.error(`🔍 [AUTH] onAuthStateChange event: ${event}`)
             const sessionUser = session?.user ?? null
+            console.error('🔍 [AUTH] onAuthStateChange user:', sessionUser?.email || 'Nenhum usuário')
+
             setUser(sessionUser)
             if (sessionUser) {
                 setFromSupabase(sessionUser)
