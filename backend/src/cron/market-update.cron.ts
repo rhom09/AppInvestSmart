@@ -46,10 +46,20 @@ async function fetchAndMapTicker(
             params: { token, fundamental: true }
         })
         const res = response.data.results?.[0]
-        if (!res) return null
+        
+        // LOG BRUTO PARA DIAGNÓSTICO
+        console.log(`[BRAPI ${ticker}] RAW:`, JSON.stringify(res, null, 2))
+
+        if (!res) {
+            console.log(`[SKIP] ${ticker}: nenhum resultado na Brapi`)
+            return null
+        }
 
         const price = res.regularMarketPrice ?? res.currentPrice ?? 0
-        if (price <= 0) return null
+        if (price <= 0) {
+            console.log(`[SKIP] ${ticker} sem preço válido: ${price}`)
+            return null
+        }
 
         const isFii = tipo === 'fii'
         const fundAcao = fundAcoes.find(a => a.ticker === ticker)
@@ -62,44 +72,36 @@ async function fetchAndMapTicker(
 
         const { scoreService } = require('../services/score.service')
 
-        const baseData = {
+        const mappedData = {
             ticker,
             nome: res.longName || res.shortName || ticker,
             preco: price,
             variacao: res.regularMarketChange ?? 0,
-            variacaoPercent: res.regularMarketChangePercent ?? 0,
+            variacao_percent: res.regularMarketChangePercent ?? 0,
             pl: isFii ? null : (fundAcao ? fundAcao.pl : (res.priceEarnings || res.trailingPE || null)),
             pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (res.priceToBook || null)),
             dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || res.dividendYield || null)),
             roe: isFii ? null : (fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : null)),
-            margemLiquida: isFii ? null : (fundAcao ? fundAcao.margemLiquida : (res.netMargin || res.profitMargins ? (res.netMargin || res.profitMargins) * 100 : null)),
-            dyMensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : null)) : null,
+            margem_liquida: isFii ? null : (fundAcao ? fundAcao.margemLiquida : (res.netMargin || res.profitMargins ? (res.netMargin || res.profitMargins) * 100 : null)),
+            dy_mensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : null)) : null,
             vacancia: isFii ? (fundFII ? fundFII.vacancia : null) : null,
             setor: !isFii ? (MAP_SETORES[ticker] || 'OUTROS') : null,
             segmento: isFii ? (MAP_SEGMENTOS[ticker] || fundFII?.segmento || 'OUTROS') : null,
-            marketCap: res.marketCap || null,
+            market_cap: res.marketCap || null,
+            tipo
         }
 
-        const score = scoreService.calcularScore(baseData)
+        const score = scoreService.calcularScore({
+            ...mappedData,
+            variacaoPercent: mappedData.variacao_percent,
+            margemLiquida: mappedData.margem_liquida,
+            dyMensal: mappedData.dy_mensal,
+            marketCap: mappedData.market_cap
+        })
 
         return {
-            ticker,
-            nome: baseData.nome,
-            preco: baseData.preco,
-            variacao: baseData.variacao,
-            variacao_percent: baseData.variacaoPercent,
-            pl: baseData.pl,
-            pvp: baseData.pvp,
-            dy: baseData.dy,
-            roe: baseData.roe,
-            margem_liquida: baseData.margemLiquida,
+            ...mappedData,
             score,
-            tipo,
-            setor: baseData.setor,
-            segmento: baseData.segmento,
-            vacancia: baseData.vacancia,
-            dy_mensal: baseData.dyMensal,
-            market_cap: baseData.marketCap,
             atualizado_em: new Date().toISOString()
         }
     } catch (error: any) {
@@ -135,7 +137,7 @@ export async function atualizarCotacoesCache() {
     const fundAcoes = await fundamentusService.scrapingAcoes()
     const fundFIIs = await fundamentusService.scrapingFIIs()
 
-    const DELAY_MS = 800
+    const DELAY_MS = 2000
     let successCount = 0
     let failCount = 0
     let rateLimitHit = false
@@ -144,22 +146,11 @@ export async function atualizarCotacoesCache() {
     console.log(`📈 [CRON] Processando ${uniqueAcoes.length} ações...`)
     for (let i = 0; i < uniqueAcoes.length; i++) {
         const ticker = uniqueAcoes[i]
-        let result = await fetchAndMapTicker(ticker, 'acao', token, fundAcoes, fundFIIs)
+        const result = await fetchAndMapTicker(ticker, 'acao', token, fundAcoes, fundFIIs)
 
         if (result === 'RATE_LIMIT') {
-            console.log(`⚠️ [CRON] Rate limit atingido em ${ticker}. Usando Mock para este ativo.`)
-            // Criar registro fake baseado em mocks ou dados padrão
-            const { brapiService } = require('../services/brapi.service')
-            result = {
-                ticker,
-                nome: ticker,
-                preco: 10.0,
-                variacao: 0,
-                variacao_percent: 0,
-                score: 50,
-                tipo: 'acao',
-                atualizado_em: new Date().toISOString()
-            }
+            console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Parando processamento de ações.`)
+            break
         }
 
         if (result) {
@@ -184,20 +175,11 @@ export async function atualizarCotacoesCache() {
     console.log(`🏢 [CRON] Processando ${uniqueFIIs.length} FIIs...`)
     for (let i = 0; i < uniqueFIIs.length; i++) {
         const ticker = uniqueFIIs[i]
-        let result = await fetchAndMapTicker(ticker, 'fii', token, fundAcoes, fundFIIs)
+        const result = await fetchAndMapTicker(ticker, 'fii', token, fundAcoes, fundFIIs)
 
         if (result === 'RATE_LIMIT') {
-            console.log(`⚠️ [CRON] Rate limit atingido em ${ticker}. Usando Mock para este FII.`)
-            result = {
-                ticker,
-                nome: ticker,
-                preco: 100.0,
-                variacao: 0,
-                variacao_percent: 0,
-                score: 50,
-                tipo: 'fii',
-                atualizado_em: new Date().toISOString()
-            }
+            console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Parando processamento de FIIs.`)
+            break
         }
 
         if (result) {
