@@ -114,11 +114,23 @@ async function fetchAndMapTicker(
     }
 }
 
+// Helper para dividir array em pedaços
+function chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = []
+    for (let i = 0; i < array.length; i += size) {
+        chunks.push(array.slice(i, i + size))
+    }
+    return chunks
+}
+
+// Estado da rotação (em memória)
+let grupoAtual = 0
+
 /**
- * Atualiza TODAS as cotações no Supabase (cotacoes_cache)
- * Chamado pelo cron a cada 30min ou sob demanda via admin endpoint
+ * Atualiza cotações no Supabase.
+ * Pode receber uma lista específica de tickers ou atualizar todos (legado).
  */
-export async function atualizarCotacoesCache() {
+export async function atualizarCotacoesCache(tickersOverride?: string[]) {
     const inicio = Date.now()
     const token = process.env.BRAPI_TOKEN
     if (!token) {
@@ -126,86 +138,109 @@ export async function atualizarCotacoesCache() {
         return { success: false, error: 'BRAPI_TOKEN não configurado' }
     }
 
-    console.log('🔄 [CRON] Iniciando atualização de cotacoes_cache...')
-    console.log(`📊 [CRON] Total: ${TICKERS_ACOES.length} ações + ${TICKERS_FIIS.length} FIIs`)
+    // Se tickersOverride for fornecido, usa ele. Caso contrário, usa a lista completa.
+    const uniqueAcoes = tickersOverride 
+        ? tickersOverride.filter(t => TICKERS_ACOES.includes(t)) 
+        : [...new Set(TICKERS_ACOES)]
+    
+    const uniqueFIIs = tickersOverride 
+        ? tickersOverride.filter(t => TICKERS_FIIS.includes(t)) 
+        : [...new Set(TICKERS_FIIS)]
 
-    // Deduplica tickers
-    const uniqueAcoes = [...new Set(TICKERS_ACOES)]
-    const uniqueFIIs = [...new Set(TICKERS_FIIS)]
-
-    // Pre-fetch Fundamentus para enriquecimento
+    console.log(`🔄 [CRON] Iniciando atualização de ${tickersOverride ? tickersOverride.length : 'todos'} ativos...`)
+    
+    // Pre-fetch Fundamentus
     const fundAcoes = await fundamentusService.scrapingAcoes()
     const fundFIIs = await fundamentusService.scrapingFIIs()
 
-    const DELAY_MS = 2000
+    const DELAY_MS = 1500 // 1.5s entre tickers
     let successCount = 0
     let failCount = 0
-    let rateLimitHit = false
 
     // Processar Ações
-    console.log(`📈 [CRON] Processando ${uniqueAcoes.length} ações...`)
-    for (let i = 0; i < uniqueAcoes.length; i++) {
-        const ticker = uniqueAcoes[i]
-        const result = await fetchAndMapTicker(ticker, 'acao', token, fundAcoes, fundFIIs)
+    if (uniqueAcoes.length > 0) {
+        console.log(`📈 [CRON] Processando ${uniqueAcoes.length} ações...`)
+        for (let i = 0; i < uniqueAcoes.length; i++) {
+            const ticker = uniqueAcoes[i]
+            const result = await fetchAndMapTicker(ticker, 'acao', token, fundAcoes, fundFIIs)
 
-        if (result === 'RATE_LIMIT') {
-            console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Parando processamento de ações.`)
-            break
-        }
-
-        if (result) {
-            const { error } = await supabaseAdmin
-                .from('cotacoes_cache')
-                .upsert(result, { onConflict: 'ticker' })
-
-            if (error) {
-                console.error(`❌ [CRON] Erro ao salvar ${ticker} no Supabase:`, error.message)
-                failCount++
-            } else {
-                successCount++
+            if (result === 'RATE_LIMIT') {
+                console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Parando lote.`)
+                break
             }
-        } else {
-            failCount++
-        }
 
-        if (i < uniqueAcoes.length - 1) await sleep(DELAY_MS)
+            if (result) {
+                const { error } = await supabaseAdmin.from('cotacoes_cache').upsert(result, { onConflict: 'ticker' })
+                if (error) {
+                    console.error(`❌ [CRON] Erro ao salvar ${ticker}:`, error.message)
+                    failCount++
+                } else {
+                    successCount++
+                    console.log(`[OK] ${ticker}: R$${result.preco}`)
+                }
+            } else {
+                failCount++
+            }
+            if (i < uniqueAcoes.length - 1) await sleep(DELAY_MS)
+        }
     }
 
     // Processar FIIs
-    console.log(`🏢 [CRON] Processando ${uniqueFIIs.length} FIIs...`)
-    for (let i = 0; i < uniqueFIIs.length; i++) {
-        const ticker = uniqueFIIs[i]
-        const result = await fetchAndMapTicker(ticker, 'fii', token, fundAcoes, fundFIIs)
+    if (uniqueFIIs.length > 0) {
+        console.log(`🏢 [CRON] Processando ${uniqueFIIs.length} FIIs...`)
+        for (let i = 0; i < uniqueFIIs.length; i++) {
+            const ticker = uniqueFIIs[i]
+            const result = await fetchAndMapTicker(ticker, 'fii', token, fundAcoes, fundFIIs)
 
-        if (result === 'RATE_LIMIT') {
-            console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Parando processamento de FIIs.`)
-            break
-        }
-
-        if (result) {
-            const { error } = await supabaseAdmin
-                .from('cotacoes_cache')
-                .upsert(result, { onConflict: 'ticker' })
-
-            if (error) {
-                console.error(`❌ [CRON] Erro ao salvar ${ticker} no Supabase:`, error.message)
-                failCount++
-            } else {
-                successCount++
+            if (result === 'RATE_LIMIT') {
+                console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Parando lote.`)
+                break
             }
-        } else {
-            failCount++
-        }
 
-        if (i < uniqueFIIs.length - 1) await sleep(DELAY_MS)
+            if (result) {
+                const { error } = await supabaseAdmin.from('cotacoes_cache').upsert(result, { onConflict: 'ticker' })
+                if (error) {
+                    console.error(`❌ [CRON] Erro ao salvar ${ticker}:`, error.message)
+                    failCount++
+                } else {
+                    successCount++
+                    console.log(`[OK] ${ticker}: R$${result.preco}`)
+                }
+            } else {
+                failCount++
+            }
+            if (i < uniqueFIIs.length - 1) await sleep(DELAY_MS)
+        }
     }
 
     const fim = Date.now()
     const tempo = ((fim - inicio) / 1000).toFixed(1)
-    const logMsg = `✅ [CRON] Cotações atualizadas: ${successCount} salvos, ${failCount} falhas, em ${tempo}s`
+    const logMsg = `✅ [CRON] Lote concluído: ${successCount} salvos, ${failCount} falhas, em ${tempo}s`
     console.log(logMsg)
 
     return { success: true, message: logMsg, saved: successCount, failed: failCount }
+}
+
+/**
+ * Modo Seed: Atualiza todos os ativos em grupos com pausas longas
+ */
+export async function modoSeedRefresh() {
+    const TODOS = [...new Set([...TICKERS_ACOES, ...TICKERS_FIIS])]
+    const GRUPOS = chunkArray(TODOS, 20)
+    
+    console.log(`🚀 [SEED] Iniciando carga total em ${GRUPOS.length} grupos...`)
+    
+    for (let i = 0; i < GRUPOS.length; i++) {
+        console.log(`📦 [SEED] Processando Grupo ${i + 1}/${GRUPOS.length}...`)
+        await atualizarCotacoesCache(GRUPOS[i])
+        
+        if (i < GRUPOS.length - 1) {
+            console.log('😴 [SEED] Aguardando 2 minutos para evitar rate limit...')
+            await sleep(120000)
+        }
+    }
+    
+    console.log('🏁 [SEED] Carga inicial concluída!')
 }
 
 /**
@@ -295,16 +330,23 @@ export async function executarAtualizacaoMercado() {
 
 // ─── Cron Schedules ───
 
-// Cotações: a cada 30 minutos durante horário de mercado (10h–17h59, seg–sex)
-cron.schedule('*/30 10-17 * * 1-5', () => {
-    console.log('⏰ [CRON] Disparando atualização de cotações (horário de mercado)...')
-    atualizarCotacoesCache()
+// Todos os tickers unificados para rotação
+export const TODOS_TICKERS = [...new Set([...TICKERS_ACOES, ...TICKERS_FIIS])]
+export const GRUPOS = chunkArray(TODOS_TICKERS, 20)
+
+// Cotações: a cada hora, processa UM grupo rotativo (9h–18h, seg–sex)
+cron.schedule('0 9-18 * * 1-5', () => {
+    const index = grupoAtual % GRUPOS.length
+    const grupo = GRUPOS[index]
+    console.log(`⏰ [CRON] Atualizando Grupo ${index + 1}/${GRUPOS.length}: ${grupo.length} ativos...`)
+    atualizarCotacoesCache(grupo)
+    grupoAtual++
 }, { timezone: "America/Sao_Paulo" })
 
-// Pre-aquecimento: 8h da manhã (antes do mercado abrir)
+// Pre-aquecimento: 8h da manhã (atualiza apenas grupo 0 para não estourar limite cedo)
 cron.schedule('0 8 * * 1-5', () => {
-    console.log('☀️ [CRON] Pre-aquecimento de cotações (8h)...')
-    atualizarCotacoesCache()
+    console.log('☀️ [CRON] Pre-aquecimento de cotações (8h - Grupo 1)...')
+    atualizarCotacoesCache(GRUPOS[0])
 }, { timezone: "America/Sao_Paulo" })
 
 // Scores + Indicados: Segunda a Sexta às 18:30
