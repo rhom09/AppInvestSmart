@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import { Bell, ChevronDown, Menu as MenuIcon, LogOut } from 'lucide-react'
 import { Menu, Transition } from '@headlessui/react'
 import { useUserStore } from '@/store/user.store'
-import { supabase, logout as supabaseLogout } from '@/services/supabase'
+import { supabase, logout as supabaseLogout, loginComGoogle } from '@/services/supabase'
 import { useNavigate } from 'react-router-dom'
 import { GlobalSearch } from '@/components/GlobalSearch'
 
@@ -21,22 +21,9 @@ export const Navbar = ({ onMenuToggle }: NavbarProps) => {
     }
 
     const handleGoogleLogin = async () => {
-        try {
-            console.log('🔄 [AUTH] Iniciando login com Google...')
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin
-                }
-            })
-            if (error) {
-                console.error('❌ [AUTH] Erro retornado pelo Supabase:', error.message)
-                alert(`Erro no login: ${error.message}`)
-            }
-        } catch (error: any) {
-            console.error('❌ [AUTH] Exception disparada no login:', error)
-            alert(`Erro inesperado: ${error.message || 'Verifique o console'}`)
-        }
+        alert('🔄 Botão de Login clicado!')
+        console.error('🔄 [AUTH] Clicou no botão de login da Navbar')
+        await loginComGoogle()
     }
 
     return (

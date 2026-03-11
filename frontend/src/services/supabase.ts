@@ -4,17 +4,34 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string
 
 if (!supabaseUrl || !supabaseKey) {
-    console.warn('[Supabase] Missing env vars VITE_SUPABASE_URL / VITE_SUPABASE_KEY — auth features disabled.')
+    const errorMsg = '[Supabase] VITE_SUPABASE_URL ou VITE_SUPABASE_KEY não configuradas!'
+    console.error(errorMsg)
 }
 
 export const supabase = createClient(supabaseUrl ?? '', supabaseKey ?? '')
 
 /** Inicia o fluxo OAuth com o Google */
-export const loginComGoogle = () =>
-    supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/dashboard` },
-    })
+export const loginComGoogle = async () => {
+    console.error('🔄 [AUTH] Iniciando loginComGoogle() em supabase.ts...')
+    try {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}`
+            },
+        })
+        if (error) {
+            console.error('❌ [AUTH] Erro no signInWithOAuth:', error.message)
+            alert(`Erro Supabase: ${error.message}`)
+            return { error }
+        }
+        return { error: null }
+    } catch (err: any) {
+        console.error('❌ [AUTH] Falha crítica no login:', err)
+        alert(`Falha crítica: ${err.message || 'Verifique o console'}`)
+        return { error: err }
+    }
+}
 
 /** Encerra a sessão do usuário */
 export const logout = () => supabase.auth.signOut()

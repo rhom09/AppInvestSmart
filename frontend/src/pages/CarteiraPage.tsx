@@ -12,7 +12,7 @@ import { Plus, Trash2, RefreshCw, Wallet, TrendingUp, DollarSign, Lock } from 'l
 import { InfoTooltip } from '@/components/InfoTooltip'
 import { useUserStore } from '@/store/user.store'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/services/supabase'
+import { supabase, loginComGoogle } from '@/services/supabase'
 
 export const CarteiraPage = () => {
     const { usuario } = useUserStore()
@@ -27,20 +27,9 @@ export const CarteiraPage = () => {
     const projecaoGrafico = projecao.filter((_, i) => i % 3 === 0 || i === projecao.length - 1)
 
     const handleGoogleLogin = async () => {
-        try {
-            console.log('🔄 [AUTH] Iniciando login com Google do modal de Carteira...')
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin
-                }
-            })
-            if (error) {
-                console.error('❌ [AUTH] Erro retornado pelo Supabase (Carteira):', error.message)
-            }
-        } catch (error: any) {
-            console.error('❌ [AUTH] Exception disparada no login (Carteira):', error)
-        }
+        alert('🔄 Botão de Login (Carteira) clicado!')
+        console.error('🔄 [AUTH] Clicou no botão de login da Carteira')
+        await loginComGoogle()
     }
 
     if (!usuario) {
