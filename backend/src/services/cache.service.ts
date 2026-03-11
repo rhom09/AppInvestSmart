@@ -1,7 +1,7 @@
 import NodeCache from 'node-cache'
 
-// TTL padrão de 5 minutos (300 segundos)
-const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 })
+// TTL padrão de 15 minutos (900 segundos)
+const cache = new NodeCache({ stdTTL: 900, checkperiod: 60 })
 
 export const cacheService = {
     get<T>(key: string): T | undefined {
@@ -9,7 +9,7 @@ export const cacheService = {
     },
 
     set<T>(key: string, value: T, ttl?: number): boolean {
-        return cache.set(key, value, ttl ?? 300)
+        return cache.set(key, value, ttl ?? 900)
     },
 
     async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttl?: number): Promise<T> {

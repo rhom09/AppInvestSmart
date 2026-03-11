@@ -73,6 +73,16 @@ const MAP_SEGMENTOS: Record<string, string> = {
     'BPFF11': 'HIBRIDO', 'HABT11': 'RECEBIVEL', 'RZTR11': 'HIBRIDO', 'SARE11': 'CORPORATIVO'
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+function chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = []
+    for (let i = 0; i < array.length; i += size) {
+        chunks.push(array.slice(i, i + size))
+    }
+    return chunks
+}
+
 export const brapiService = {
     async listarAtivos() {
         return cacheService.getOrSet('brapi_available_stocks', async () => {
@@ -216,28 +226,64 @@ export const brapiService = {
         const token = process.env.BRAPI_TOKEN
         if (!token) return MOCK_ATIVOS.filter(a => tickers.includes(a.ticker))
 
-        console.log(`🔍 [BRAPI] Buscando ${tickers.length} ativos individualmente (limite Brapi Free)`)
+        console.log(`🔍 [BRAPI] Buscando ${tickers.length} ativos sequencialmente (Rate Limit Fix)`)
 
-        const results: any[] = []
-        const CONCURRENCY_LIMIT = 5
+        const allResults: any[] = []
+        const DELAY_MS = 1000
 
-        for (let i = 0; i < tickers.length; i += CONCURRENCY_LIMIT) {
-            const chunk = tickers.slice(i, i + CONCURRENCY_LIMIT)
-            const chunkPromises = chunk.map(async (ticker) => {
-                try {
-                    const response = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
-                        params: { token, fundamental: true }
+        for (let i = 0; i < tickers.length; i++) {
+            const ticker = tickers[i]
+            try {
+                const response = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
+                    params: { token, fundamental: true }
+                })
+                const result = response.data.results?.[0]
+                if (result) {
+                    allResults.push(result)
+                } else {
+                    const mock = MOCK_ATIVOS.find(m => m.ticker === ticker)
+                    allResults.push({ 
+                        symbol: ticker, 
+                        longName: mock?.nome || ticker, 
+                        regularMarketPrice: mock?.preco || 0, 
+                        regularMarketChange: mock?.variacao || 0, 
+                        regularMarketChangePercent: mock?.variacaoPercent || 0 
                     })
-                    return response.data.results?.[0]
-                } catch (error: any) {
-                    console.error(`❌ [BRAPI] Erro ao buscar ticker ${ticker}:`, error.message)
-                    return null
                 }
-            })
+            } catch (error: any) {
+                if (error.response?.status === 429) {
+                    console.error(`🛑 [BRAPI] Rate Limit atingido em ${ticker}. Usando dados básicos para o restante.`)
+                    for (let j = i; j < tickers.length; j++) {
+                        const remainingTicker = tickers[j]
+                        const mock = MOCK_ATIVOS.find(m => m.ticker === remainingTicker)
+                        allResults.push({ 
+                            symbol: remainingTicker, 
+                            longName: mock?.nome || remainingTicker, 
+                            regularMarketPrice: mock?.preco || 0, 
+                            regularMarketChange: mock?.variacao || 0, 
+                            regularMarketChangePercent: mock?.variacaoPercent || 0 
+                        })
+                    }
+                    break 
+                }
+                
+                console.error(`❌ [BRAPI] Falha em ${ticker}: ${error.message}. Tentando Dados Básicos...`)
+                const mock = MOCK_ATIVOS.find(m => m.ticker === ticker)
+                allResults.push({ 
+                    symbol: ticker, 
+                    longName: mock?.nome || ticker, 
+                    regularMarketPrice: mock?.preco || 0, 
+                    regularMarketChange: mock?.variacao || 0, 
+                    regularMarketChangePercent: mock?.variacaoPercent || 0 
+                })
+            }
 
-            const chunkResults = await Promise.all(chunkPromises)
-            results.push(...chunkResults.filter(r => r !== null))
+            if (i < tickers.length - 1) {
+                await sleep(DELAY_MS)
+            }
         }
+
+        const results = allResults
 
         // Enrich with Fundamentus data
         const fundAcoes = await fundamentusService.scrapingAcoes()

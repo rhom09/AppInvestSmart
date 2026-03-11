@@ -7,13 +7,6 @@ import { awesomeService } from '../services/awesome.service'
 const router = Router()
 
 
-function chunkArray<T>(array: T[], size: number): T[][] {
-    const chunks: T[][] = []
-    for (let i = 0; i < array.length; i += size) {
-        chunks.push(array.slice(i, i + size))
-    }
-    return chunks
-}
 
 // GET /api/acoes - listar todas as ações (paginado)
 router.get('/', async (req: Request, res: Response) => {
@@ -30,13 +23,8 @@ router.get('/', async (req: Request, res: Response) => {
             return res.json({ success: true, data: [], total, page, totalPages })
         }
 
-        // Batch fetching - Reduzido para 1 pois o plano Free do Brapi limita a 1 ticker por request
-        const chunks = chunkArray(pageTickers, 1)
-        const batchResults = await Promise.all(
-            chunks.map(chunk => brapiService.buscarVariosAtivos(chunk))
-        )
-
-        const acoes = batchResults.flat()
+        // Busca os ativos da página (o serviço já trata o rate limit com chunks e delay)
+        const acoes = await brapiService.buscarVariosAtivos(pageTickers)
 
         res.json({
             success: true,

@@ -3,13 +3,6 @@ import { brapiService, TICKERS_FIIS } from '../services/brapi.service'
 
 const router = Router()
 
-function chunkArray<T>(array: T[], size: number): T[][] {
-    const chunks: T[][] = []
-    for (let i = 0; i < array.length; i += size) {
-        chunks.push(array.slice(i, i + size))
-    }
-    return chunks
-}
 
 // GET /api/fiis - listar FIIs (paginado)
 router.get('/', async (req: Request, res: Response) => {
@@ -26,13 +19,8 @@ router.get('/', async (req: Request, res: Response) => {
             return res.json({ success: true, data: [], total, page, totalPages })
         }
 
-        // Batch fetching in chunks of 8 for FIIs
-        const chunks = chunkArray(pageTickers, 8)
-        const batchResults = await Promise.all(
-            chunks.map(chunk => brapiService.buscarVariosAtivos(chunk))
-        )
-
-        const fiis = batchResults.flat()
+        // Busca os FIIs da página (o serviço já trata o rate limit com chunks e delay)
+        const fiis = await brapiService.buscarVariosAtivos(pageTickers)
 
         res.json({
             success: true,
