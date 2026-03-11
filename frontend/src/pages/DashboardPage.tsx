@@ -50,6 +50,63 @@ const ChartSkeleton = () => (
     </div>
 )
 
+const IndexCard = ({ index }: { index: any }) => {
+    const isPositive = index.variation > 0
+    const isNegative = index.variation < 0
+    const isRate = ['SELIC', 'IPCA', 'CDI'].includes(index.ticker)
+    const isUSD = index.ticker === 'USD'
+    const value = isRate
+        ? `${(index.close ?? 0).toFixed(2)}%`
+        : isUSD
+            ? formatMoeda(index.close ?? 0)
+            : formatMoeda(index.close ?? 0).replace('R$', '').trim()
+
+    return (
+        <div className="card border border-surface-border p-3 flex flex-col justify-center min-w-[140px] flex-1">
+            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{index.name}</p>
+            <div className="flex items-center justify-between mt-1">
+                <p className="text-sm font-black text-text-primary">{value}</p>
+                <div className={`flex items-center gap-0.5 text-[10px] font-bold ${isPositive ? 'text-primary' : isNegative ? 'text-danger' : 'text-text-muted'}`}>
+                    <span>{isPositive ? '+' : ''}{(index.variation ?? 0).toFixed(2)}%</span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+const MarketIndices = () => {
+    const [indices, setIndices] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchIndices = async () => {
+            try {
+                const { data } = await api.get('/acoes/market/indices')
+                if (data.success) setIndices(data.data)
+            } catch (err) {
+                console.error('Erro ao buscar índices:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchIndices()
+    }, [])
+
+    if (loading) return (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="card h-16 animate-pulse bg-surface-border/20" />
+            ))}
+        </div>
+    )
+
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {indices.map(idx => <IndexCard key={idx.ticker} index={idx} />)}
+        </div>
+    )
+}
+
 const EmptyChartState = () => (
     <div className="h-[220px] flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-surface-border rounded-2xl bg-bg-elevated/30">
         <div className="w-12 h-12 rounded-full bg-surface-border/30 flex items-center justify-center mb-3 text-text-muted">
@@ -254,52 +311,49 @@ export const DashboardPage = () => {
                 </div>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {loadingCarteira ? (
-                    Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
-                ) : !usuario ? (
-                    <>
-                        <LockedCard titulo="Patrimônio Total" icon={<Wallet size={18} />} cor="green" />
-                        <LockedCard titulo="Rentabilidade Total" icon={<TrendingUp size={18} />} cor="red" />
-                        <LockedCard titulo="Rentabilidade Mês" icon={<TrendingUp size={18} />} cor="blue" />
-                        <LockedCard titulo="Dividendos Mês" icon={<DollarSign size={18} />} cor="yellow" />
-                    </>
-                ) : (
-                    <>
-                        <StatCard
-                            titulo="Patrimônio Total"
-                            valor={formatMoeda(carteira.totalAtual)}
-                            icon={<Wallet size={18} />}
-                            cor="green"
-                        />
-                        <StatCard
-                            titulo="Rentabilidade Total"
-                            valor={formatPercent(carteira.resultadoPercent)}
-                            subvalor="desde a compra"
-                            variacao={carteira.resultadoPercent}
-                            icon={<TrendingUp size={18} />}
-                            cor={carteira.resultadoPercent >= 0 ? 'green' : 'red'}
-                        />
-                        {loadingPeriodo ? <CardSkeleton /> : (
+            {/* KPI Cards ou Índices de Mercado */}
+            {!usuario ? (
+                <MarketIndices />
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {loadingCarteira ? (
+                        Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
+                    ) : (
+                        <>
                             <StatCard
-                                titulo="Rentabilidade Mês"
-                                valor={formatPercent(carteira.rendimentoMes)}
-                                icon={<TrendingUp size={18} />}
-                                info="Variação média dos seus ativos no mercado nos últimos 30 dias"
-                                cor="blue"
+                                titulo="Patrimônio Total"
+                                valor={formatMoeda(carteira.totalAtual)}
+                                icon={<Wallet size={18} />}
+                                cor="green"
                             />
-                        )}
-                        <StatCard
-                            titulo="Dividendos Mês"
-                            valor={formatMoeda(carteira.dividendosMes)}
-                            subvalor="estimativa"
-                            icon={<DollarSign size={18} />}
-                            cor="yellow"
-                        />
-                    </>
-                )}
-            </div>
+                            <StatCard
+                                titulo="Rentabilidade Total"
+                                valor={formatPercent(carteira.resultadoPercent)}
+                                subvalor="desde a compra"
+                                variacao={carteira.resultadoPercent}
+                                icon={<TrendingUp size={18} />}
+                                cor={carteira.resultadoPercent >= 0 ? 'green' : 'red'}
+                            />
+                            {loadingPeriodo ? <CardSkeleton /> : (
+                                <StatCard
+                                    titulo="Rentabilidade Mês"
+                                    valor={formatPercent(carteira.rendimentoMes)}
+                                    icon={<TrendingUp size={18} />}
+                                    info="Variação média dos seus ativos no mercado nos últimos 30 dias"
+                                    cor="blue"
+                                />
+                            )}
+                            <StatCard
+                                titulo="Dividendos Mês"
+                                valor={formatMoeda(carteira.dividendosMes)}
+                                subvalor="estimativa"
+                                icon={<DollarSign size={18} />}
+                                cor="yellow"
+                            />
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Spotlight + Chart Row */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -515,39 +569,52 @@ export const DashboardPage = () => {
                 </div>
 
                 {/* Composição */}
-                <div className="card">
+                <div className="card relative overflow-hidden">
                     <h2 className="text-text-primary font-semibold mb-4">Composição</h2>
-                    <ResponsiveContainer width="100%" height={180}>
-                        <PieChart style={{ outline: 'none' }}>
-                            <Pie data={composicao} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" strokeWidth={0}>
-                                {composicao.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: '#1e2438',
-                                    border: '1px solid #2a3050',
-                                    borderRadius: '8px',
-                                    color: '#e8eaf2'
-                                }}
-                                itemStyle={{ color: '#e8eaf2' }}
-                                labelStyle={{ color: '#e8eaf2' }}
-                                formatter={(v: any) => [formatMoeda(Number(v) || 0), '']}
-                            />
-                        </PieChart>
-                    </ResponsiveContainer>
-                    <div className="space-y-2 mt-3">
-                        {composicao.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className="text-text-secondary">{item.name}</span>
+                    <div className={!usuario ? 'opacity-20 blur-[2px] pointer-events-none' : ''}>
+                        <ResponsiveContainer width="100%" height={180}>
+                            <PieChart style={{ outline: 'none' }}>
+                                <Pie data={composicao} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" strokeWidth={0}>
+                                    {composicao.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#1e2438',
+                                        border: '1px solid #2a3050',
+                                        borderRadius: '8px',
+                                        color: '#e8eaf2'
+                                    }}
+                                    itemStyle={{ color: '#e8eaf2' }}
+                                    labelStyle={{ color: '#e8eaf2' }}
+                                    formatter={(v: any) => [formatMoeda(Number(v) || 0), '']}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <div className="space-y-2 mt-3">
+                            {composicao.map((item, i) => (
+                                <div key={i} className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                        <span className="text-text-secondary">{item.name}</span>
+                                    </div>
+                                    <span className="text-text-primary font-medium">{(((item.value ?? 0) / (carteira.totalAtual || 1)) * 100).toFixed(1)}%</span>
                                 </div>
-                                <span className="text-text-primary font-medium">{(((item.value ?? 0) / (carteira.totalAtual || 1)) * 100).toFixed(1)}%</span>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
+
+                    {!usuario && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center p-4 bg-bg-card/40 backdrop-blur-[1px]">
+                            <div className="bg-bg-elevated/90 p-2.5 rounded-full shadow-lg border border-surface-border mb-2.5">
+                                <Lock size={18} className="text-text-primary" />
+                            </div>
+                            <p className="text-[11px] font-bold text-text-primary max-w-[140px] leading-tight">
+                                Faça login para ver a composição da sua carteira
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

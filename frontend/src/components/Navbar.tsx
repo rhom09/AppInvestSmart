@@ -22,14 +22,20 @@ export const Navbar = ({ onMenuToggle }: NavbarProps) => {
 
     const handleGoogleLogin = async () => {
         try {
-            await supabase.auth.signInWithOAuth({
+            console.log('🔄 [AUTH] Iniciando login com Google...')
+            const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: window.location.origin
                 }
             })
-        } catch (error) {
-            console.error('Erro no login:', error)
+            if (error) {
+                console.error('❌ [AUTH] Erro retornado pelo Supabase:', error.message)
+                alert(`Erro no login: ${error.message}`)
+            }
+        } catch (error: any) {
+            console.error('❌ [AUTH] Exception disparada no login:', error)
+            alert(`Erro inesperado: ${error.message || 'Verifique o console'}`)
         }
     }
 

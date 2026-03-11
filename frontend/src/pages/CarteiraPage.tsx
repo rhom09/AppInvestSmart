@@ -28,14 +28,18 @@ export const CarteiraPage = () => {
 
     const handleGoogleLogin = async () => {
         try {
-            await supabase.auth.signInWithOAuth({
+            console.log('🔄 [AUTH] Iniciando login com Google do modal de Carteira...')
+            const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: window.location.origin
                 }
             })
-        } catch (error) {
-            console.error('Erro no login:', error)
+            if (error) {
+                console.error('❌ [AUTH] Erro retornado pelo Supabase (Carteira):', error.message)
+            }
+        } catch (error: any) {
+            console.error('❌ [AUTH] Exception disparada no login (Carteira):', error)
         }
     }
 
