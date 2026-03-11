@@ -5,7 +5,6 @@ import { useUserStore } from '@/store/user.store'
 import { supabase, logout as supabaseLogout, loginComGoogle } from '@/services/supabase'
 import { useNavigate } from 'react-router-dom'
 import { GlobalSearch } from '@/components/GlobalSearch'
-import { MarketStatusBadge } from '@/components/MarketStatusBadge'
 
 interface NavbarProps {
     onMenuToggle?: () => void
@@ -34,16 +33,11 @@ export const Navbar = ({ onMenuToggle }: NavbarProps) => {
             <GlobalSearch />
 
             <div className="flex items-center gap-3 ml-auto">
-                <div className="flex items-center gap-2">
-                    {/* Market Status (Only for Unlogged Users) */}
-                    {!usuario && <MarketStatusBadge />}
-
-                    {/* Notifications */}
-                    <button className="btn-ghost p-2 relative">
-                        <Bell size={18} />
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-                    </button>
-                </div>
+                {/* Notifications */}
+                <button className="btn-ghost p-2 relative">
+                    <Bell size={18} />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
+                </button>
 
                 {/* Plan badge */}
                 {usuario && (

@@ -12,7 +12,6 @@ import { api } from '@/services/api'
 import { formatMoeda, formatPercent, getVariacaoColor } from '@/utils/formatters'
 import { useUserStore } from '@/store/user.store'
 import { TruncatedName } from '@/components/TruncatedName'
-import { MarketStatusBadge } from '@/components/MarketStatusBadge'
 import type { Ativo } from '@/types'
 
 const COLORS = ['#00e88f', '#00b8ff', '#f0a500', '#ff4d6d', '#a78bfa']
@@ -299,8 +298,9 @@ export const DashboardPage = () => {
             {selectedAtivo && (
                 <DetalhePanel ativo={selectedAtivo} onClose={() => setSelectedAtivo(null)} />
             )}
+
             {/* Welcome header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary">
                         {usuario ? `Bem-vindo, ${usuario.nome.split(' ')[0]} 👋` : 'Visão Geral'}
@@ -309,7 +309,6 @@ export const DashboardPage = () => {
                         {usuario ? 'Aqui está o resumo dos seus investimentos hoje.' : 'Explore o mercado e veja o que você pode montar.'}
                     </p>
                 </div>
-                {usuario && <MarketStatusBadge />}
             </div>
 
             {/* KPI Cards ou Índices de Mercado */}
