@@ -97,6 +97,8 @@ export const useCarteiraResumo = () => {
                 totalAtual,
                 resultado,
                 resultadoPercent,
+                rendimentoMes: resultadoPercent, // Pre-warm com rentabilidade total
+                rendimentoAno: resultadoPercent, // Pre-warm com rentabilidade total
                 dividendosMes: somaDividendosEstimados,
                 itens
             }))

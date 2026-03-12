@@ -210,37 +210,38 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
             }
         } catch (e) { }
 
-        // 2. Buscar cotações
-        const currentQuotes = await yahooService.buscarCotacoesBatch(tickerList)
-        let rentabilidadeAcumulada = 0
-        let pesoTotalValido = 0
-        const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+        // 2. Buscar ativos do banco para obter preço médio (base de custo)
+        const { data: ativosDb } = await supabaseAdmin
+            .from('carteira_ativos')
+            .select('ticker, preco_medio')
+            .eq('user_id', userId)
 
-        // 3. Calcular
+        // 3. Buscar cotações atuais
+        const currentQuotes = await yahooService.buscarCotacoesBatch(tickerList)
+        let valorInvestidoTotal = 0
+        let valorAtualTotal = 0
+
+        // 4. Calcular baseado no custo médio
         for (let i = 0; i < tickerList.length; i++) {
             const ticker = tickerList[i]
             const qtd = quantityList[i]
+            
+            const ativoDb = ativosDb?.find(a => a.ticker === ticker)
+            const precoMedio = ativoDb?.preco_medio || 0
+            
             const quote = currentQuotes.find(q => q.ticker === ticker)
             const precoAtual = quote?.preco || 0
 
-            if (precoAtual === 0) continue
-            const valorPosicao = precoAtual * qtd
-
-            try {
-                const history = await yahooService.buscarHistorico(ticker, brapiPeriod)
-                if (history && history.length > 0) {
-                    const precoInicio = history[0].close || 0
-                    if (precoInicio > 0) {
-                        const variacao = ((precoAtual - precoInicio) / precoInicio) * 100
-                        rentabilidadeAcumulada += variacao * valorPosicao
-                        pesoTotalValido += valorPosicao
-                    }
-                }
-            } catch (err) { }
-            await sleep(200)
+            if (precoAtual > 0 && precoMedio > 0) {
+                valorInvestidoTotal += precoMedio * qtd
+                valorAtualTotal += precoAtual * qtd
+            }
         }
 
-        const rentabilidadeFinal = pesoTotalValido > 0 ? (rentabilidadeAcumulada / pesoTotalValido) : 0
+        const rentabilidadeFinal = valorInvestidoTotal > 0 
+            ? ((valorAtualTotal - valorInvestidoTotal) / valorInvestidoTotal) * 100 
+            : 0
+
         const result = { rentabilidade: rentabilidadeFinal }
 
         // 4. Salvar Cache
