@@ -349,9 +349,9 @@ export const DashboardPage = () => {
                             {loadingPeriodo ? <CardSkeleton /> : (
                                 <StatCard
                                     titulo="Rentabilidade Mês"
-                                    valor={formatPercent(carteira.rendimentoMes)}
+                                    valor={carteira.rendimentoMes !== null ? formatPercent(carteira.rendimentoMes) : '—'}
                                     icon={<TrendingUp size={18} />}
-                                    info="Variação média dos seus ativos no mercado nos últimos 30 dias"
+                                    info={carteira.rendimentoMes !== null ? "Variação média dos seus ativos no mercado nos últimos 30 dias" : "Disponível em breve"}
                                     cor="blue"
                                 />
                             )}

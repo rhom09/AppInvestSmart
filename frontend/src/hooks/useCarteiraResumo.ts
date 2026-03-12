@@ -13,8 +13,8 @@ export const useCarteiraResumo = () => {
         totalAtual: 0,
         resultado: 0,
         resultadoPercent: 0,
-        rendimentoMes: 0,
-        rendimentoAno: 0,
+        rendimentoMes: null,
+        rendimentoAno: null,
         dividendosMes: 0,
         scoreCarteira: 0,
         itens: []
@@ -33,8 +33,8 @@ export const useCarteiraResumo = () => {
                     totalAtual: 0,
                     resultado: 0,
                     resultadoPercent: 0,
-                    rendimentoMes: 0,
-                    rendimentoAno: 0,
+                    rendimentoMes: null,
+                    rendimentoAno: null,
                     dividendosMes: 0,
                     scoreCarteira: 0,
                     itens: []
@@ -97,8 +97,6 @@ export const useCarteiraResumo = () => {
                 totalAtual,
                 resultado,
                 resultadoPercent,
-                rendimentoMes: resultadoPercent, // Pre-warm com rentabilidade total
-                rendimentoAno: resultadoPercent, // Pre-warm com rentabilidade total
                 dividendosMes: somaDividendosEstimados,
                 itens
             }))
@@ -127,8 +125,8 @@ export const useCarteiraResumo = () => {
 
             setResumo(prev => ({
                 ...prev,
-                rendimentoMes: resMes.data?.success ? resMes.data.data.rentabilidade : 0,
-                rendimentoAno: resAno.data?.success ? resAno.data.data.rentabilidade : 0
+                rendimentoMes: resMes.data?.success ? resMes.data.data.rentabilidade : null,
+                rendimentoAno: resAno.data?.success ? resAno.data.data.rentabilidade : null
             }))
         } catch (err) {
             console.warn('⚠️ [useCarteiraResumo] Falha ao carregar rentabilidades temporais')

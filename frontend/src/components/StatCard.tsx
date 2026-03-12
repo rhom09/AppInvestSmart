@@ -44,7 +44,7 @@ export const StatCard = ({ titulo, valor, subvalor, variacao, icon, cor = 'green
 
                 <div className="flex items-center gap-2 mt-1">
                     {subvalor && <span className="text-text-secondary text-sm">{subvalor}</span>}
-                    {variacao !== undefined && (
+                    {variacao !== undefined && variacao !== null && (
                         <span className={`text-xs font-semibold ${getVariacaoColor(variacao)}`}>
                             {variacao > 0 ? '▲' : variacao < 0 ? '▼' : '•'} {(Math.abs(variacao ?? 0)).toFixed(2)}%
                         </span>

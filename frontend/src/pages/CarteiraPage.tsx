@@ -110,13 +110,13 @@ export const CarteiraPage = () => {
                         </div>
                     </div>
                 ) : (
-                    <StatCard
-                        titulo="Rentabilidade Mês"
-                        valor={formatPercent(carteira.rendimentoMes)}
-                        icon={<TrendingUp size={18} />}
-                        info="Variação média dos seus ativos no mercado nos últimos 30 dias"
-                        cor="blue"
-                    />
+                <StatCard
+                    titulo="Rentabilidade Mês"
+                    valor={carteira.rendimentoMes !== null ? formatPercent(carteira.rendimentoMes) : '—'}
+                    icon={<TrendingUp size={18} />}
+                    info={carteira.rendimentoMes !== null ? "Variação média dos seus ativos no mercado nos últimos 30 dias" : "Disponível em breve"}
+                    cor="blue"
+                />
                 )}
                 <StatCard
                     titulo="Rendimento Estimado"
@@ -193,16 +193,20 @@ export const CarteiraPage = () => {
                         <div className="flex justify-between text-sm">
                             <div className="flex items-center gap-1">
                                 <span className="text-text-secondary">Rentab. Mês</span>
-                                <InfoTooltip text="Variação média dos seus ativos no mercado nos últimos 30 dias" />
+                                <InfoTooltip text={carteira.rendimentoMes !== null ? "Variação média dos seus ativos no mercado nos últimos 30 dias" : "Disponível em breve"} />
                             </div>
-                            <span className={`font-semibold ${getVariacaoColor(carteira.rendimentoMes)}`}>{formatPercent(carteira.rendimentoMes)}</span>
+                            <span className={`font-semibold ${carteira.rendimentoMes !== null ? getVariacaoColor(carteira.rendimentoMes) : 'text-text-muted'}`}>
+                                {carteira.rendimentoMes !== null ? formatPercent(carteira.rendimentoMes) : '—'}
+                            </span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <div className="flex items-center gap-1">
                                 <span className="text-text-secondary">Rentab. Ano</span>
-                                <InfoTooltip text="Variação média dos seus ativos no mercado nos últimos 12 meses. Não representa o seu lucro pessoal — para isso, veja a Rentabilidade Total" />
+                                <InfoTooltip text={carteira.rendimentoAno !== null ? "Variação média dos seus ativos no mercado nos últimos 12 meses. Não representa o seu lucro pessoal — para isso, veja a Rentabilidade Total" : "Disponível em breve"} />
                             </div>
-                            <span className={`font-semibold ${getVariacaoColor(carteira.rendimentoAno)}`}>{formatPercent(carteira.rendimentoAno)}</span>
+                            <span className={`font-semibold ${carteira.rendimentoAno !== null ? getVariacaoColor(carteira.rendimentoAno) : 'text-text-muted'}`}>
+                                {carteira.rendimentoAno !== null ? formatPercent(carteira.rendimentoAno) : '—'}
+                            </span>
                         </div>
                     </div>
                 </div>

@@ -242,7 +242,7 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
             ? ((valorAtualTotal - valorInvestidoTotal) / valorInvestidoTotal) * 100 
             : 0
 
-        const result = { rentabilidade: rentabilidadeFinal }
+        const result = { rentabilidade: null } // Desabilitado por enquanto até termos histórico confiável
 
         // 4. Salvar Cache
         if (!(userId as string).includes('debug')) {
