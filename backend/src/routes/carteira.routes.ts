@@ -109,8 +109,8 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                     console.log(`     Primeiro: date=${history[0].date} close=${history[0].close}`)
                     console.log(`     Último:   date=${history[history.length - 1].date} close=${history[history.length - 1].close}`)
                     history.forEach((day: any) => {
-                        const dayDate = new Date(day.date * 1000)
-                        dayDate.setHours(0, 0, 0, 0)
+                        const dayDate = new Date(day.date)
+                        dayDate.setHours(12, 0, 0, 0)
 
                         if (dayDate < oldestPurchaseDate) {
                             truncated = true
@@ -139,13 +139,25 @@ router.get('/evolucao', async (req: Request, res: Response) => {
 
         const aviso = truncated ? `Exibindo desde ${oldestPurchaseDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}, data da primeira compra` : undefined
 
-        const chartData = Object.entries(evolucaoPorData)
+        let chartData = Object.entries(evolucaoPorData)
             .map(([date, value]) => ({
                 data: date,
                 patrimonio: value,
                 label: new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
             }))
             .sort((a, b) => a.data.localeCompare(b.data))
+
+        // 4. Agregação Mensal para períodos longos (1y)
+        if (periodo === '1y' && chartData.length > 31) {
+            console.log(`📊 [EVOLUCAO] Aplicando agregação mensal para ${chartData.length} pontos...`)
+            const monthlyPoints: Record<string, any> = {}
+            chartData.forEach(point => {
+                const monthKey = point.data.substring(0, 7) // YYYY-MM
+                monthlyPoints[monthKey] = point // sobrescreve para pegar o último dia disponível do mês
+            })
+            chartData = Object.values(monthlyPoints).sort((a: any, b: any) => a.data.localeCompare(b.data))
+            console.log(`📊 [EVOLUCAO] Agregação concluída: ${chartData.length} pontos mensais`)
+        }
 
         console.log(`📊 [EVOLUCAO] chartData gerado: ${chartData.length} pontos`)
         if (chartData.length > 0) {

@@ -33,7 +33,7 @@ export async function buscarHistorico(ticker: string, periodo: string) {
   try {
     const period2Map: Record<string, string> = { '1mo': '1mo', '3mo': '3mo', '1y': '1y', '5d': '5d' }
     const start = getPeriodStart(periodo)
-    const queryOptions: any = { period1: start, interval: '1d' } // Type can be refined
+    const queryOptions: any = { period1: start, period2: new Date(), interval: '1d' } // Type can be refined
     
     // For indices like ^BVSP, don't append .SA
     const symbol = ticker.startsWith('^') ? ticker : toYahoo(ticker)
