@@ -1,22 +1,21 @@
-import axios from 'axios'
+import YahooFinance from 'yahoo-finance2'
 import { cacheService } from './cache.service'
 
-const AWESOME_URL = 'https://economia.awesomeapi.com.br/json/last'
+const yahooFinance = new YahooFinance()
 
 export const awesomeService = {
     async buscarDolar() {
         return cacheService.getOrSet('awesome_usd_brl', async () => {
             try {
-                const { data } = await axios.get(`${AWESOME_URL}/USD-BRL`)
-                const usd = data.USDBRL
+                const result = await yahooFinance.quote('USDBRL=X')
                 return {
                     ticker: 'USD',
                     name: 'Dólar Comercial',
-                    close: parseFloat(usd.bid),
-                    variation: parseFloat(usd.pctChange)
+                    close: result.regularMarketPrice ?? 0,
+                    variation: result.regularMarketChangePercent ?? 0
                 }
             } catch (error) {
-                console.error('Erro ao buscar Dólar na AwesomeAPI:', error)
+                console.error('[DOLAR] Erro ao buscar USDBRL=X no Yahoo:', error)
                 return {
                     ticker: 'USD',
                     name: 'Dólar Comercial',
@@ -24,6 +23,6 @@ export const awesomeService = {
                     variation: 0
                 }
             }
-        }, 900) // 15 minutos (900s)
+        }, 3600) // 60 minutos (3600s)
     }
 }
