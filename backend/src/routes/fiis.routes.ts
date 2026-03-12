@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
-import { brapiService, TICKERS_FIIS } from '../services/brapi.service'
 import { supabaseAdmin } from '../services/supabase.service'
+import { TICKERS_FIIS } from '../utils/tickers'
+import * as yahooService from '../services/yahoo.service'
 
 const router = Router()
 
@@ -60,7 +61,7 @@ router.get('/', async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Erro ao buscar FIIs do Supabase:', error.message)
 
-        // Fallback: tentar buscar da Brapi caso Supabase falhe
+        // Fallback p/ Yahoo Finance
         try {
             const page = parseInt(req.query.page as string) || 1
             const limit = parseInt(req.query.limit as string) || 12
@@ -68,8 +69,8 @@ router.get('/', async (req: Request, res: Response) => {
             const totalPages = Math.ceil(total / limit)
             const offset = (page - 1) * limit
             const pageTickers = TICKERS_FIIS.slice(offset, offset + limit)
-            const fiis = await brapiService.buscarVariosAtivos(pageTickers)
-            res.json({ success: true, data: fiis, total, page, totalPages, fonte: 'brapi-fallback' })
+            const fiis = await yahooService.buscarCotacoesBatch(pageTickers)
+            res.json({ success: true, data: fiis, total, page, totalPages, fonte: 'yahoo-fallback' })
         } catch {
             res.status(500).json({ success: false, message: 'Erro ao buscar FIIs' })
         }

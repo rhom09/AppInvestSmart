@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { brapiService } from '../services/brapi.service'
+import * as yahooService from '../services/yahoo.service'
 import { supabaseAdmin } from '../services/supabase.service'
 
 const router = Router()
@@ -102,9 +102,9 @@ router.get('/evolucao', async (req: Request, res: Response) => {
 
         for (const ativo of ativos) {
             try {
-                console.log(`  → [BRAPI] Buscando ${ativo.ticker} periodo=${periodo}...`)
-                const history = await brapiService.buscarHistorico(ativo.ticker, periodo as string)
-                console.log(`  ← [BRAPI] ${ativo.ticker}: ${history?.length ?? 0} pontos retornados`)
+                console.log(`  → [YAHOO] Buscando ${ativo.ticker} periodo=${periodo}...`)
+                const history = await yahooService.buscarHistorico(ativo.ticker, periodo as string)
+                console.log(`  ← [YAHOO] ${ativo.ticker}: ${history?.length ?? 0} pontos retornados`)
                 if (history && history.length > 0) {
                     console.log(`     Primeiro: date=${history[0].date} close=${history[0].close}`)
                     console.log(`     Último:   date=${history[history.length - 1].date} close=${history[history.length - 1].close}`)
@@ -129,10 +129,10 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                         evolucaoPorData[dateKey] = (evolucaoPorData[dateKey] || 0) + (day.close || 0) * ativo.quantidade
                     })
                 } else {
-                    console.warn(`  ⚠️ [BRAPI] ${ativo.ticker}: histórico vazio ou null`)
+                    console.warn(`  ⚠️ [YAHOO] ${ativo.ticker}: histórico vazio ou null`)
                 }
             } catch (err: any) {
-                console.error(`  ❌ [BRAPI] ${ativo.ticker}: ERRO — ${err.message}`)
+                console.error(`  ❌ [YAHOO] ${ativo.ticker}: ERRO — ${err.message}`)
             }
             await sleep(200)
         }
@@ -211,7 +211,7 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
         } catch (e) { }
 
         // 2. Buscar cotações
-        const currentQuotes = await brapiService.buscarVariosAtivos(tickerList)
+        const currentQuotes = await yahooService.buscarCotacoesBatch(tickerList)
         let rentabilidadeAcumulada = 0
         let pesoTotalValido = 0
         const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -227,9 +227,9 @@ router.get('/rentabilidade-periodo', async (req: Request, res: Response) => {
             const valorPosicao = precoAtual * qtd
 
             try {
-                const history = await brapiService.buscarHistorico(ticker, brapiPeriod)
+                const history = await yahooService.buscarHistorico(ticker, brapiPeriod)
                 if (history && history.length > 0) {
-                    const precoInicio = history[0].close || history[0].open
+                    const precoInicio = history[0].close || 0
                     if (precoInicio > 0) {
                         const variacao = ((precoAtual - precoInicio) / precoInicio) * 100
                         rentabilidadeAcumulada += variacao * valorPosicao

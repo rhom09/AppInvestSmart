@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { cacheService } from '../services/cache.service'
-import { brapiService, TICKERS_FIIS, TICKERS_ACOES } from '../services/brapi.service'
+import { TICKERS_FIIS, TICKERS_ACOES } from '../utils/tickers'
 
 const router = Router()
 
@@ -76,8 +76,9 @@ async function buildCatalog(): Promise<SearchResult[]> {
 
         // Enrich with live prices in a best-effort, non-blocking way
         try {
+            const { buscarCotacoesBatch } = require('../services/yahoo.service')
             const allTickers = [...TICKERS_ACOES, ...TICKERS_FIIS]
-            const live = await brapiService.buscarVariosAtivos(allTickers)
+            const live = await buscarCotacoesBatch(allTickers)
             for (const item of live) {
                 const entry = catalog.find(c => c.ticker === item.ticker)
                 if (entry) {

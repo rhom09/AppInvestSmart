@@ -1,7 +1,6 @@
 import cron from 'node-cron'
-import axios from 'axios'
-import { brapiService, TICKERS_ACOES, TICKERS_FIIS } from '../services/brapi.service'
-import { calcularScoreAcao } from '../services/score.service'
+import { TICKERS_ACOES, TICKERS_FIIS } from '../utils/tickers'
+import { calcularScoreAcao, scoreService } from '../services/score.service'
 import { supabaseAdmin } from '../services/supabase.service'
 import { fundamentusService } from '../services/fundamentus.service'
 
@@ -31,88 +30,7 @@ const MAP_SEGMENTOS: Record<string, string> = {
     'BPFF11': 'HIBRIDO', 'HABT11': 'RECEBIVEL', 'RZTR11': 'HIBRIDO', 'SARE11': 'CORPORATIVO'
 }
 
-/**
- * Busca um ticker individual da Brapi e retorna o objeto mapeado para cotacoes_cache
- */
-async function fetchAndMapTicker(
-    ticker: string,
-    tipo: 'acao' | 'fii',
-    token: string,
-    fundAcoes: any[],
-    fundFIIs: any[]
-): Promise<any | null> {
-    try {
-        const response = await axios.get(`${BRAPI_BASE}/quote/${ticker}`, {
-            params: { token, fundamental: true }
-        })
-        const res = response.data.results?.[0]
-        
-        // LOG BRUTO PARA DIAGNÓSTICO
-        console.log(`[BRAPI ${ticker}] RAW:`, JSON.stringify(res, null, 2))
-
-        if (!res) {
-            console.log(`[SKIP] ${ticker}: nenhum resultado na Brapi`)
-            return null
-        }
-
-        const price = res.regularMarketPrice ?? res.currentPrice ?? 0
-        if (price <= 0) {
-            console.log(`[SKIP] ${ticker} sem preço válido: ${price}`)
-            return null
-        }
-
-        const isFii = tipo === 'fii'
-        const fundAcao = fundAcoes.find(a => a.ticker === ticker)
-        const fundFII = fundFIIs.find(f => f.ticker === ticker)
-
-        let dyScore = 0
-        if (res.dividendYield != null) {
-            dyScore = res.dividendYield * 100
-        }
-
-        const { scoreService } = require('../services/score.service')
-
-        const mappedData = {
-            ticker,
-            nome: res.longName || res.shortName || ticker,
-            preco: price,
-            variacao: res.regularMarketChange ?? 0,
-            variacao_percent: res.regularMarketChangePercent ?? 0,
-            pl: isFii ? null : (fundAcao ? fundAcao.pl : (res.priceEarnings || res.trailingPE || null)),
-            pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : (res.priceToBook || null)),
-            dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : (dyScore || res.dividendYield || null)),
-            roe: isFii ? null : (fundAcao ? fundAcao.roe : (res.returnOnEquity ? res.returnOnEquity * 100 : null)),
-            margem_liquida: isFii ? null : (fundAcao ? fundAcao.margemLiquida : (res.netMargin || res.profitMargins ? (res.netMargin || res.profitMargins) * 100 : null)),
-            dy_mensal: isFii ? (fundFII ? fundFII.dy / 12 : (dyScore ? dyScore / 12 : null)) : null,
-            vacancia: isFii ? (fundFII ? fundFII.vacancia : null) : null,
-            setor: !isFii ? (MAP_SETORES[ticker] || 'OUTROS') : null,
-            segmento: isFii ? (MAP_SEGMENTOS[ticker] || fundFII?.segmento || 'OUTROS') : null,
-            market_cap: res.marketCap || null,
-            tipo
-        }
-
-        const score = scoreService.calcularScore({
-            ...mappedData,
-            variacaoPercent: mappedData.variacao_percent,
-            margemLiquida: mappedData.margem_liquida,
-            dyMensal: mappedData.dy_mensal,
-            marketCap: mappedData.market_cap
-        })
-
-        return {
-            ...mappedData,
-            score,
-            atualizado_em: new Date().toISOString()
-        }
-    } catch (error: any) {
-        if (error.response?.status === 429) {
-            console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Pulando.`)
-            return 'RATE_LIMIT'
-        }
-        console.error(`❌ [CRON] Falha em ${ticker}: ${error.message}`)
-        return null
-    }
-}
+import { buscarCotacoesBatch } from '../services/yahoo.service'
 
 // Helper para dividir array em pedaços
 function chunkArray<T>(array: T[], size: number): T[][] {
@@ -127,18 +45,11 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 let grupoAtual = 0
 
 /**
- * Atualiza cotações no Supabase.
- * Pode receber uma lista específica de tickers ou atualizar todos (legado).
+ * Atualiza cotações usando Yahoo Finance em grandes lotes sem rate limit.
  */
 export async function atualizarCotacoesCache(tickersOverride?: string[]) {
     const inicio = Date.now()
-    const token = process.env.BRAPI_TOKEN
-    if (!token) {
-        console.error('❌ [CRON] BRAPI_TOKEN não configurado. Abortando.')
-        return { success: false, error: 'BRAPI_TOKEN não configurado' }
-    }
 
-    // Se tickersOverride for fornecido, usa ele. Caso contrário, usa a lista completa.
     const uniqueAcoes = tickersOverride 
         ? tickersOverride.filter(t => TICKERS_ACOES.includes(t)) 
         : [...new Set(TICKERS_ACOES)]
@@ -147,100 +58,89 @@ export async function atualizarCotacoesCache(tickersOverride?: string[]) {
         ? tickersOverride.filter(t => TICKERS_FIIS.includes(t)) 
         : [...new Set(TICKERS_FIIS)]
 
-    console.log(`🔄 [CRON] Iniciando atualização de ${tickersOverride ? tickersOverride.length : 'todos'} ativos...`)
+    const allTickersToFetch = [...uniqueAcoes, ...uniqueFIIs]
+    console.log(`🔄 [CRON] Iniciando atualização de ${allTickersToFetch.length} ativos (Yahoo Finance)...`)
     
-    // Pre-fetch Fundamentus
+    // Pre-fetch Fundamentus para DY, PVP, ROE etc. (como Yahoo não tem tudo perfeitamente para FIIs)
     const fundAcoes = await fundamentusService.scrapingAcoes()
     const fundFIIs = await fundamentusService.scrapingFIIs()
 
-    const DELAY_MS = 1500 // 1.5s entre tickers
+    const { scoreService } = require('../services/score.service')
     let successCount = 0
     let failCount = 0
 
-    // Processar Ações
-    if (uniqueAcoes.length > 0) {
-        console.log(`📈 [CRON] Processando ${uniqueAcoes.length} ações...`)
-        for (let i = 0; i < uniqueAcoes.length; i++) {
-            const ticker = uniqueAcoes[i]
-            const result = await fetchAndMapTicker(ticker, 'acao', token, fundAcoes, fundFIIs)
+    // Fetch batch (Yahoo Finance supports large arrays, but we can do it in one go if < 500)
+    const lotes = chunkArray(allTickersToFetch, 50)
+    for (const lote of lotes) {
+        console.log(`📦 Processando lote de ${lote.length} ativos...`)
+        const cotacoes = await buscarCotacoesBatch(lote)
+        
+        for (const c of cotacoes) {
+            const isFii = TICKERS_FIIS.includes(c.ticker)
+            const fundAcao = fundAcoes.find(a => a.ticker === c.ticker)
+            const fundFII = fundFIIs.find(f => f.ticker === c.ticker)
 
-            if (result === 'RATE_LIMIT') {
-                console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Parando lote.`)
-                break
+            // Combinar Yahoo + Fundamentus
+            const mappedData = {
+                ticker: c.ticker,
+                nome: c.nome,
+                preco: c.preco,
+                variacao: c.variacao,
+                variacao_percent: c.variacaoPercent,
+                pl: isFii ? null : (fundAcao ? fundAcao.pl : c.pl),
+                pvp: fundAcao ? fundAcao.pvp : (fundFII ? fundFII.pvp : c.pvp),
+                dy: fundAcao ? fundAcao.dy : (fundFII ? fundFII.dy : c.dy),
+                roe: isFii ? null : (fundAcao ? fundAcao.roe : c.roe),
+                margem_liquida: isFii ? null : (fundAcao ? fundAcao.margemLiquida : c.margemLiquida),
+                dy_mensal: isFii ? (fundFII ? fundFII.dy / 12 : (c.dy ? c.dy / 12 : null)) : null,
+                vacancia: isFii ? (fundFII ? fundFII.vacancia : null) : null,
+                setor: !isFii ? (MAP_SETORES[c.ticker] || 'OUTROS') : null,
+                segmento: isFii ? (MAP_SEGMENTOS[c.ticker] || fundFII?.segmento || 'OUTROS') : null,
+                market_cap: c.marketCap,
+                tipo: isFii ? 'fii' : 'acao'
             }
 
-            if (result) {
-                const { error } = await supabaseAdmin.from('cotacoes_cache').upsert(result, { onConflict: 'ticker' })
-                if (error) {
-                    console.error(`❌ [CRON] Erro ao salvar ${ticker}:`, error.message)
-                    failCount++
-                } else {
-                    successCount++
-                    console.log(`[OK] ${ticker}: R$${result.preco}`)
-                }
-            } else {
+            const score = scoreService.calcularScore({
+                ...mappedData,
+                variacaoPercent: mappedData.variacao_percent,
+                margemLiquida: mappedData.margem_liquida,
+                dyMensal: mappedData.dy_mensal,
+                marketCap: mappedData.market_cap
+            })
+
+            const finalData = {
+                ...mappedData,
+                score,
+                atualizado_em: new Date().toISOString()
+            }
+
+            const { error } = await supabaseAdmin.from('cotacoes_cache').upsert(finalData, { onConflict: 'ticker' })
+            if (error) {
+                console.error(`❌ [CRON] Erro ao salvar ${c.ticker}:`, error.message)
                 failCount++
-            }
-            if (i < uniqueAcoes.length - 1) await sleep(DELAY_MS)
-        }
-    }
-
-    // Processar FIIs
-    if (uniqueFIIs.length > 0) {
-        console.log(`🏢 [CRON] Processando ${uniqueFIIs.length} FIIs...`)
-        for (let i = 0; i < uniqueFIIs.length; i++) {
-            const ticker = uniqueFIIs[i]
-            const result = await fetchAndMapTicker(ticker, 'fii', token, fundAcoes, fundFIIs)
-
-            if (result === 'RATE_LIMIT') {
-                console.error(`🛑 [CRON] Rate Limit atingido em ${ticker}. Parando lote.`)
-                break
-            }
-
-            if (result) {
-                const { error } = await supabaseAdmin.from('cotacoes_cache').upsert(result, { onConflict: 'ticker' })
-                if (error) {
-                    console.error(`❌ [CRON] Erro ao salvar ${ticker}:`, error.message)
-                    failCount++
-                } else {
-                    successCount++
-                    console.log(`[OK] ${ticker}: R$${result.preco}`)
-                }
             } else {
-                failCount++
+                successCount++
             }
-            if (i < uniqueFIIs.length - 1) await sleep(DELAY_MS)
         }
+        await sleep(1000) // 1s entre lotes de 50
     }
 
     const fim = Date.now()
     const tempo = ((fim - inicio) / 1000).toFixed(1)
-    const logMsg = `✅ [CRON] Lote concluído: ${successCount} salvos, ${failCount} falhas, em ${tempo}s`
+    const logMsg = `✅ [CRON] Concluído: ${successCount} salvos, ${failCount} falhas em ${tempo}s (Yahoo Finance)`
     console.log(logMsg)
 
     return { success: true, message: logMsg, saved: successCount, failed: failCount }
 }
 
 /**
- * Modo Seed: Atualiza todos os ativos em grupos com pausas longas
+ * Modo Seed: Atualiza todos em lotes de 50
  */
 export async function modoSeedRefresh() {
     const TODOS = [...new Set([...TICKERS_ACOES, ...TICKERS_FIIS])]
-    const GRUPOS = chunkArray(TODOS, 20)
-    
-    console.log(`🚀 [SEED] Iniciando carga total em ${GRUPOS.length} grupos...`)
-    
-    for (let i = 0; i < GRUPOS.length; i++) {
-        console.log(`📦 [SEED] Processando Grupo ${i + 1}/${GRUPOS.length}...`)
-        await atualizarCotacoesCache(GRUPOS[i])
-        
-        if (i < GRUPOS.length - 1) {
-            console.log('😴 [SEED] Aguardando 2 minutos para evitar rate limit...')
-            await sleep(120000)
-        }
-    }
-    
-    console.log('🏁 [SEED] Carga inicial concluída!')
+    console.log(`🚀 [SEED] Iniciando carga total de ${TODOS.length} ativos (Yahoo Finance)...`)
+    await atualizarCotacoesCache(TODOS)
+    console.log('🏁 [SEED] Carga inicial concluída com sucesso!')
 }
 
 /**
@@ -251,34 +151,30 @@ export async function executarAtualizacaoMercado() {
     console.log('🕒 Iniciando atualização diária de mercado...')
 
     try {
-        // 1. Buscar tickers monitorados (ativos disponíveis na Brapi)
-        const ativosDisponiveis = await brapiService.listarAtivos()
-        const tickers = ativosDisponiveis.map((a: any) => typeof a === 'string' ? a : a.ticker).filter(Boolean)
+        // 1. Buscar tickers monitorados
+        const tickers = TODOS_TICKERS
 
-        console.log(`📊 Processando ${tickers.length} ativos...`)
+        console.log(`📊 Processando ${tickers.length} ativos para daily scores...`)
 
         const scoresDiarios = []
 
         // 2. Para cada ticker, buscar dados e calcular score
-        for (const ticker of tickers) {
-            try {
-                const dados = await brapiService.buscarAtivo(ticker)
-                if (!dados) continue
-
-                const { score } = calcularScoreAcao(dados)
+        const chunks = chunkArray(tickers, 20)
+        for (const chunk of chunks) {
+            const cotacoes = await buscarCotacoesBatch(chunk)
+            for (const dados of cotacoes) {
+                const { score } = calcularScoreAcao(dados as any)
 
                 scoresDiarios.push({
-                    ticker,
+                    ticker: dados.ticker,
                     score,
                     pl: dados.pl,
                     pvp: dados.pvp,
                     dy: dados.dy,
                     roe: dados.roe,
-                    preco: dados.regularMarketPrice || dados.preco,
+                    preco: dados.preco,
                     data: new Date().toISOString().split('T')[0]
                 })
-            } catch (err) {
-                console.error(`❌ Erro ao processar ${ticker}:`, err)
             }
         }
 

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { brapiService } from '../services/brapi.service'
+import * as yahooService from '../services/yahoo.service'
 import { bcbService } from '../services/bcb.service'
 import { awesomeService } from '../services/awesome.service'
 
@@ -12,7 +12,7 @@ const router = Router()
 router.get('/indices', async (_req: Request, res: Response) => {
     try {
         const [indices, ipca, selic, cdi, dolar] = await Promise.all([
-            brapiService.buscarIndices(),
+            yahooService.buscarIndices(),
             bcbService.buscarIPCA12m(),
             bcbService.buscarSelic(),
             bcbService.buscarCDI(),

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { brapiService } from '../services/brapi.service'
+import * as yahooService from '../services/yahoo.service'
 
 const router = Router()
 
@@ -17,9 +17,7 @@ router.get('/', async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: 'Nenhum ticker válido fornecido' })
         }
 
-        // Utiliza o método buscarVariosAtivos que já trata paginação/chunks limitados a 5 
-        // pela API Brapi e já acopla Score e info do Fundamentus!
-        const resultados = await brapiService.buscarVariosAtivos(tickersArray)
+        const resultados = await yahooService.buscarCotacoesBatch(tickersArray)
 
         // Converter array para um Map/Record para facilitar no frontend O(1)
         const cotacoesMap = resultados.reduce((acc: Record<string, any>, ativo: any) => {

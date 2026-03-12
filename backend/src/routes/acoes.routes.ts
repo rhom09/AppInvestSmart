@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express'
-import { brapiService, TICKERS_ACOES } from '../services/brapi.service'
+import { TICKERS_ACOES } from '../utils/tickers'
 import { scoreService } from '../services/score.service'
 import { bcbService } from '../services/bcb.service'
 import { awesomeService } from '../services/awesome.service'
 import { supabaseAdmin } from '../services/supabase.service'
+import * as yahooService from '../services/yahoo.service'
 
 const router = Router()
 
@@ -35,7 +36,7 @@ router.get('/', async (req: Request, res: Response) => {
 
         if (error) throw error
 
-        // Mapear snake_case → camelCase para manter compatibilidade com o frontend
+        // Mapear snake_case → camelCase
         const acoes = (data || []).map(row => ({
             ticker: row.ticker,
             nome: row.nome,
@@ -64,8 +65,8 @@ router.get('/', async (req: Request, res: Response) => {
         })
     } catch (error: any) {
         console.error('Erro ao buscar ações do Supabase:', error.message)
-
-        // Fallback: tentar buscar da Brapi caso Supabase falhe
+        
+        // Fallback p/ Yahoo Finance
         try {
             const page = parseInt(req.query.page as string) || 1
             const limit = parseInt(req.query.limit as string) || 20
@@ -73,8 +74,8 @@ router.get('/', async (req: Request, res: Response) => {
             const totalPages = Math.ceil(total / limit)
             const offset = (page - 1) * limit
             const pageTickers = TICKERS_ACOES.slice(offset, offset + limit)
-            const acoes = await brapiService.buscarVariosAtivos(pageTickers)
-            res.json({ success: true, data: acoes, total, page, totalPages, fonte: 'brapi-fallback' })
+            const acoes = await yahooService.buscarCotacoesBatch(pageTickers)
+            res.json({ success: true, data: acoes, total, page, totalPages, fonte: 'yahoo-fallback' })
         } catch {
             res.status(500).json({ success: false, message: 'Erro ao buscar ações' })
         }
@@ -85,7 +86,8 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:ticker', async (req, res) => {
     try {
         const { ticker } = req.params
-        const ativo = await brapiService.buscarAtivo(ticker.toUpperCase())
+        const cotacoes = await yahooService.buscarCotacoesBatch([ticker.toUpperCase()])
+        const ativo = cotacoes[0] as any
         if (!ativo) {
             return res.status(404).json({ success: false, message: 'Ativo não encontrado' })
         }
@@ -96,12 +98,13 @@ router.get('/:ticker', async (req, res) => {
     }
 })
 
-// GET /api/acoes/:ticker/historico - histórico de preços
+// GET /api/acoes/:ticker/historico - histórico de preços (agora busca no banco primeiro ou Yahoo)
+// Wait: user requested an evolucao_cache table for portfolio evolution. Historical prices for individual charts can still use Yahoo.
 router.get('/:ticker/historico', async (req, res) => {
     try {
         const { ticker } = req.params
         const { periodo = '1mo' } = req.query
-        const historico = await brapiService.buscarHistorico(ticker.toUpperCase(), String(periodo))
+        const historico = await yahooService.buscarHistorico(ticker.toUpperCase(), String(periodo))
         return res.json({ success: true, data: historico })
     } catch {
         return res.status(500).json({ success: false, message: 'Erro ao buscar histórico' })
@@ -112,7 +115,7 @@ router.get('/:ticker/historico', async (req, res) => {
 router.get('/market/indices', async (_req, res) => {
     try {
         const [indices, ipca, selic, cdi, dolar] = await Promise.all([
-            brapiService.buscarIndices(),
+            yahooService.buscarIndices(),
             bcbService.buscarIPCA12m(),
             bcbService.buscarSelic(),
             bcbService.buscarCDI(),
