@@ -106,8 +106,8 @@ export interface ResumoCarteira {
     totalAtual: number
     resultado: number
     resultadoPercent: number
-    rendimentoMes: number
-    rendimentoAno: number
+    rendimentoMes: number | null
+    rendimentoAno: number | null
     dividendosMes: number
     scoreCarteira: number
     itens: ItemCarteira[]
