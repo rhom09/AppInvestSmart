@@ -80,9 +80,9 @@ export async function atualizarCotacoesCache(tickersOverride?: string[]) {
             const fundAcao = fundAcoes.find(a => a.ticker === c.ticker)
             const fundFII = fundFIIs.find(f => f.ticker === c.ticker)
             
-            // Só salvar se tiver preço válido
-            if (!c || c.preco <= 0) {
-                console.log(`⚠️ [SKIP] ${c.ticker} sem preço válido (${c.preco}), mantendo cache anterior`)
+            // ANTES de fazer o upsert na cotacoes_cache, verificar:
+            if (!c || c.preco == null || c.preco <= 0) {
+                console.log(`[CRON SKIP] ${c.ticker} sem preço válido (${c?.preco}), mantendo cache anterior`)
                 continue
             }
 
