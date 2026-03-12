@@ -35,7 +35,7 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                 const lastUpdated = new Date(cacheEntry.updated_at)
                 const diffHours = (new Date().getTime() - lastUpdated.getTime()) / (1000 * 60 * 60)
                 console.log(`💾 [EVOLUCAO] Cache encontrado — idade: ${diffHours.toFixed(2)}h — payload length: ${JSON.stringify(cacheEntry.payload_json)?.length}`)
-                if (diffHours < 24) {
+                if (diffHours < 1) {
                     const cachedResponse = cacheEntry.payload_json
 
                     // Suporta tanto o formato antigo (array) quanto o novo (objeto { data, aviso })

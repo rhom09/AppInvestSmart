@@ -79,6 +79,12 @@ export async function atualizarCotacoesCache(tickersOverride?: string[]) {
             const isFii = TICKERS_FIIS.includes(c.ticker)
             const fundAcao = fundAcoes.find(a => a.ticker === c.ticker)
             const fundFII = fundFIIs.find(f => f.ticker === c.ticker)
+            
+            // Só salvar se tiver preço válido
+            if (!c || c.preco <= 0) {
+                console.log(`⚠️ [SKIP] ${c.ticker} sem preço válido (${c.preco}), mantendo cache anterior`)
+                continue
+            }
 
             // Combinar Yahoo + Fundamentus
             const mappedData = {
