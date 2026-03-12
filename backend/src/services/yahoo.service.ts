@@ -1,4 +1,4 @@
-import { YahooFinance } from 'yahoo-finance2'
+import YahooFinance from 'yahoo-finance2'
 const yahooFinance = new YahooFinance()
 
 const toYahoo = (ticker: string) => `${ticker}.SA`
