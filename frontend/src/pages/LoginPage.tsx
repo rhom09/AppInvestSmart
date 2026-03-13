@@ -35,9 +35,7 @@ export const LoginPage = () => {
             <div className="w-full max-w-md relative">
                 {/* Logo / Brand */}
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 border border-primary/20 rounded-2xl mb-4">
-                        <TrendingUp size={32} className="text-primary" />
-                    </div>
+                    <img src="/logo-192.png" alt="InvestSmart" className="w-16 h-16 mx-auto mb-4 object-contain drop-shadow-lg" />
                     <h1 className="text-3xl font-bold text-text-primary">InvestSmart</h1>
                     <p className="text-text-secondary mt-2 text-sm">
                         Inteligência artificial para seus investimentos

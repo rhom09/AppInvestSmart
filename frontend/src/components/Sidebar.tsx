@@ -37,9 +37,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 {/* Logo */}
                 <div className="px-6 py-5 border-b border-surface-border">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-brand flex items-center justify-center">
-                            <span className="text-bg-primary font-black text-sm">IS</span>
-                        </div>
+                        <img src="/logo-32.png" alt="InvestSmart" className="w-8 h-8 rounded-lg object-contain" />
                         <div>
                             <h1 className="text-text-primary font-bold text-base leading-none">InvestSmart</h1>
                             <span className="text-[10px] font-semibold text-primary/80 leading-none">BETA v2.0</span>
