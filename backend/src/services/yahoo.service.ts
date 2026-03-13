@@ -29,36 +29,29 @@ export async function buscarCotacoesBatch(tickers: string[]) {
 }
 
 export async function buscarHistorico(ticker: string, periodo: string) {
-  // periodo: '1mo', '3mo', '6mo', '1y', '5d', etc.
   try {
-    // For indices like ^BVSP, don't append .SA
     const symbol = ticker.startsWith('^') ? ticker : toYahoo(ticker)
 
-    if (periodo === '6mo') {
-      const hoje = new Date()
-      const seisAntras = new Date()
-      seisAntras.setMonth(hoje.getMonth() - 6)
-      const dados = await (yahooFinance.chart as any)(symbol, {
-        period1: seisAntras,
-        period2: hoje,
-        interval: '1d'
-      }, { validateResult: false })
-      
-      if (!dados.quotes || dados.quotes.length === 0) return []
-      
-      return dados.quotes
-        .filter((q: any) => q.date && q.close !== null)
-        .map((q: any) => ({
-          date: new Date(q.date).toISOString(),
-          close: q.close
-        }))
-    }
+    const hoje = new Date()
+    const ontem = new Date(hoje)
+    ontem.setDate(ontem.getDate() - 1)
 
-    const start = getPeriodStart(periodo)
-    const queryOptions: any = { period1: start, period2: new Date(), interval: '1d' }
-    
-    const result = (await (yahooFinance.historical as any)(symbol, queryOptions, { validateResult: false })) as any[]
-    return result.map((r: any) => ({ date: r.date, close: r.close }))
+    const inicio = getPeriodStart(periodo)
+
+    const dados = await (yahooFinance.chart as any)(symbol, {
+      period1: inicio,
+      period2: ontem,
+      interval: '1d'
+    }, { validateResult: false })
+
+    if (!dados?.quotes || dados.quotes.length === 0) return []
+
+    return dados.quotes
+      .filter((q: any) => q.date && q.close !== null)
+      .map((q: any) => ({
+        date: new Date(q.date).toISOString(),
+        close: q.close
+      }))
   } catch (error: any) {
     console.error(`❌ [YAHOO] Erro ao buscar histórico de ${ticker}:`, error.message)
     return []
