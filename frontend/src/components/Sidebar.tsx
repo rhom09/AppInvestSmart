@@ -39,9 +39,9 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                     <div className="flex items-center gap-2">
                         <img src="/logo-32.png" className="w-8 h-8" alt="InvestSmart" />
                         <div>
-                            <h1 className="text-text-primary font-bold text-base leading-none flex items-end gap-1">
+                            <h1 className="text-text-primary font-bold text-base leading-none flex items-baseline gap-0.5">
                                 InvestSmart
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block mb-[1px]" />
+                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse inline-block" />
                             </h1>
                             <span className="text-[10px] font-semibold text-primary/80 leading-none">BETA v2.0</span>
                         </div>
