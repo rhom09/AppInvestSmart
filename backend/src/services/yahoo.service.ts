@@ -43,7 +43,7 @@ export async function buscarHistorico(ticker: string, periodo: string) {
         period1: seisAntras,
         period2: hoje,
         interval: '1d'
-      })
+      }, { validateResult: false })
       
       if (!dados.quotes || dados.quotes.length === 0) return []
       
