@@ -38,8 +38,7 @@ export async function buscarHistorico(ticker: string, periodo: string) {
       const hoje = new Date()
       const seisAntras = new Date()
       seisAntras.setMonth(hoje.getMonth() - 6)
-      
-      const dados = await yahooFinance.chart(symbol, {
+      const dados = await (yahooFinance.chart as any)(symbol, {
         period1: seisAntras,
         period2: hoje,
         interval: '1d'
@@ -58,7 +57,7 @@ export async function buscarHistorico(ticker: string, periodo: string) {
     const start = getPeriodStart(periodo)
     const queryOptions: any = { period1: start, period2: new Date(), interval: '1d' }
     
-    const result = (await yahooFinance.historical(symbol, queryOptions, { validateResult: false })) as any[]
+    const result = (await (yahooFinance.historical as any)(symbol, queryOptions, { validateResult: false })) as any[]
     return result.map((r: any) => ({ date: r.date, close: r.close }))
   } catch (error: any) {
     console.error(`❌ [YAHOO] Erro ao buscar histórico de ${ticker}:`, error.message)
