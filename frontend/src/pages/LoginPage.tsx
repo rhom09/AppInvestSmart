@@ -35,7 +35,7 @@ export const LoginPage = () => {
             <div className="w-full max-w-md relative">
                 {/* Logo / Brand */}
                 <div className="text-center mb-10">
-                    <img src="/logo-192.png" alt="InvestSmart" className="w-16 h-16 mx-auto mb-4 object-contain drop-shadow-lg" />
+                    <img src="/logo-192.png" className="w-16 h-16 mx-auto mb-4" alt="InvestSmart" />
                     <h1 className="text-3xl font-bold text-text-primary">InvestSmart</h1>
                     <p className="text-text-secondary mt-2 text-sm">
                         Inteligência artificial para seus investimentos

@@ -25,6 +25,11 @@ export const Navbar = ({ onMenuToggle }: NavbarProps) => {
 
     return (
         <header className="h-16 bg-bg-card border-b border-surface-border flex items-center px-4 md:px-6 gap-4 sticky top-0 z-20 w-full">
+            {/* Logo Mobile */}
+            <div className="flex md:hidden items-center gap-2">
+                <img src="/logo-32.png" className="w-8 h-8" alt="InvestSmart" />
+            </div>
+
             {/* Mobile menu toggle - Oculto pois agora usamos BottomNav */}
             <button onClick={onMenuToggle} className="btn-ghost p-2 hidden">
                 <MenuIcon size={20} />
