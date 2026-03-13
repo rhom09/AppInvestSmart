@@ -58,7 +58,7 @@ export async function buscarHistorico(ticker: string, periodo: string) {
     const start = getPeriodStart(periodo)
     const queryOptions: any = { period1: start, period2: new Date(), interval: '1d' }
     
-    const result = (await yahooFinance.historical(symbol, queryOptions)) as any[]
+    const result = (await yahooFinance.historical(symbol, queryOptions, { validateResult: false })) as any[]
     return result.map((r: any) => ({ date: r.date, close: r.close }))
   } catch (error: any) {
     console.error(`❌ [YAHOO] Erro ao buscar histórico de ${ticker}:`, error.message)
