@@ -81,8 +81,9 @@ function getPeriodStart(periodo: string): Date {
   const now = new Date()
   if (periodo === '1mo') now.setMonth(now.getMonth() - 1)
   else if (periodo === '3mo') now.setMonth(now.getMonth() - 3)
+  else if (periodo === '6mo') now.setMonth(now.getMonth() - 6)
   else if (periodo === '1y') now.setFullYear(now.getFullYear() - 1)
   else if (periodo === '5y') now.setFullYear(now.getFullYear() - 5)
-  else now.setDate(now.getDate() - 5) // default to approx 5 days for short periods
+  else now.setDate(now.getDate() - 5)
   return now
 }
