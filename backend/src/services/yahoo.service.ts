@@ -47,7 +47,7 @@ export async function buscarHistorico(ticker: string, periodo: string) {
       if (!dados.quotes || dados.quotes.length === 0) return []
       
       return dados.quotes
-        .filter(q => q.date && q.close !== null)
+        .filter((q: any) => q.date && q.close !== null)
         .map((q: any) => ({
           date: new Date(q.date).toISOString(),
           close: q.close
