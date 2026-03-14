@@ -105,10 +105,23 @@ router.get('/evolucao', async (req: Request, res: Response) => {
                 console.log(`  → [YAHOO] Buscando ${ativo.ticker} periodo=${periodo}...`)
                 const history = await yahooService.buscarHistorico(ativo.ticker, periodo as string)
                 console.log(`  ← [YAHOO] ${ativo.ticker}: ${history?.length ?? 0} pontos retornados`)
-                if (history && history.length > 0) {
-                    console.log(`     Primeiro: date=${history[0].date} close=${history[0].close}`)
-                    console.log(`     Último:   date=${history[history.length - 1].date} close=${history[history.length - 1].close}`)
-                    history.forEach((day: any) => {
+                
+                // Deduplicar: manter apenas o último entry por data
+                const historyDedup = (history || []).reduce((acc: any[], day: any) => {
+                    const dateKey = new Date(day.date).toISOString().split('T')[0]
+                    const existingIdx = acc.findIndex((d: any) => new Date(d.date).toISOString().split('T')[0] === dateKey)
+                    if (existingIdx >= 0) {
+                        acc[existingIdx] = day // substitui pelo mais recente
+                    } else {
+                        acc.push(day)
+                    }
+                    return acc
+                }, [])
+
+                if (historyDedup && historyDedup.length > 0) {
+                    console.log(`     Primeiro: date=${historyDedup[0].date} close=${historyDedup[0].close}`)
+                    console.log(`     Último:   date=${historyDedup[historyDedup.length - 1].date} close=${historyDedup[historyDedup.length - 1].close}`)
+                    historyDedup.forEach((day: any) => {
                         const dayDate = new Date(day.date)
                         dayDate.setHours(12, 0, 0, 0)
 
