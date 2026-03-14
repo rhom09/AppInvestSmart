@@ -596,11 +596,17 @@ export const DashboardPage = () => {
                                         backgroundColor: '#1e2438',
                                         border: '1px solid #2a3050',
                                         borderRadius: '8px',
-                                        color: '#e8eaf2'
+                                        color: '#e8eaf2',
+                                        padding: '8px 12px'
                                     }}
                                     itemStyle={{ color: '#e8eaf2' }}
-                                    labelStyle={{ color: '#e8eaf2' }}
-                                    formatter={(v: any) => [formatMoeda(Number(v) || 0), '']}
+                                    labelStyle={{ display: 'none' }}
+                                    formatter={(value: any, _name: any, props: any) => {
+                                        const total = carteira.totalAtual || 1
+                                        const pct = ((Number(value) / total) * 100).toFixed(1)
+                                        const ticker = props?.payload?.name || ''
+                                        return [`${ticker} · ${pct}% · ${formatMoeda(Number(value))}`, '']
+                                    }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
