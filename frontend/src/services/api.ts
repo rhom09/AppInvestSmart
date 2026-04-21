@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // ─── Instância base para nosso backend ─────────────────────────────
-let API_URL = import.meta.env.VITE_API_URL || 'https://appinvestsmart-production.up.railway.app'
+let API_URL = import.meta.env.VITE_API_URL || 'https://appinvestsmart-backend.onrender.com'
 
 // Ensure protocol is present to avoid relative path issues in production
 if (API_URL && !API_URL.startsWith('http')) {
